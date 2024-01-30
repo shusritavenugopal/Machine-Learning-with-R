@@ -1,0 +1,1667 @@
+---
+title: "INFSCI 2595 Spring 2024 Homework: 02"
+subtitle: "Assigned January 17, 2024; Due: January 24, 2024"
+author: "Shusrita Venugopal"
+date: "Submission time: January 24, 2024 at 11:00PM EST"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Collaborators
+
+Include the names of your collaborators here.  
+
+## Overview
+
+This assignment is focused on fitting and comparing regression models. Your task is to fit 9 polynomial models from degree 1 (linear relationship) to degree 9 (a 9th degree polynomial). You will interpret behavior through analyzing the coefficient estimates and by visualizing predictions from the models. You must select the best performing model and you will do so several different ways. You will first consider performance on the training set alone, then use a single train/test split, and finally using 5-fold cross-validation.  
+
+You will work with 3 different data sets, but all 3 data sets were generated from the same **data generating process**. These 3 different versions of the data will allow you consider the influence of sample size (low vs high) and uncontrollable variation or noise (low vs high) on the model selection process.  
+
+**IMPORTANT**: You are working with 3 data sets in this assignment. This does not mean you must always have multiple "versions" of a data set to complete a machine learning application. This assignment is constructed so that you will see the relationship between sample size and noise on the ability to learn and identify appropriate levels of complexity. The data in this assignment are synthetic data created specifically for this assignment.  
+
+**IMPORTANT**: The RMarkdown assumes you have downloaded the 3 data sets (CSV files) to the same directory you saved the template Rmarkdown file. If you do not have the 3 CSV files in the correct location, the data will not be loaded correctly.  
+
+### IMPORTANT!!!
+
+Certain code chunks are created for you. Each code chunk has `eval=FALSE` set in the chunk options. You **MUST** change it to be `eval=TRUE` in order for the code chunks to be evaluated when rendering the document.  
+
+You are free to add more code chunks if you would like.  
+
+## Load packages
+
+The `tidyverse` is loaded in for you in the code chunk below. The visualization package, `ggplot2`, and the data manipulation package, `dplyr`, are part of the "larger" `tidyverse`.  
+
+```{r, load_tidyverse}
+library(tidyverse)
+```
+
+The `modelr` package is loaded in for you in the code chunk below. You may use functions from `modelr` to calculate performance metrics for your models.  
+
+```{r, load_modelr}
+library(modelr)
+```
+
+
+This assignment also uses functions from the `coefplot` package and uses the major functions from the `caret` package. Those packages will be loaded when necessary later in the assignment.  
+
+## Problem 01
+
+A data set is loaded for you in the code chunk below. The data are assigned to the `df_low_high` object. The naming convention of this variable represents that the data were generated with low sample size and high noise. Thus, you will begin your predictive modeling or *supervised learning* task with data that are known to be noisy.  
+
+```{r, read_low_high_data}
+path_low_high <- 'hw02_lowsize_highnoise.csv'
+df_low_high <- readr::read_csv(path_low_high, col_names = TRUE)
+
+```
+
+A glimpse of the data are provided for you below. The variable `x` is the input and the variable `y` is the response. Your task is to predict `y` as a function of `x` using various polynomial models. As stated before, the data in Problem 01 are the "noisy" data.  
+
+```{r, glimpse_low_high_data}
+df_low_high %>% glimpse()
+```
+
+### 1a)
+
+It is always best to explore the data before fitting models. For this assignment, all you are required to do is visualize the relationship between the output and input with a scatter plot.  
+
+**Use ggplot2 to create a scatter plot between the input, `x`, and the response, `y`. The scatter plot is created with the `geom_point()` geom. Manually set the marker size to be 3 within the `geom_point()` geom.**  
+
+**Does the relationship between the input and response appear to be linear or non-linear?**  
+
+#### SOLUTION
+
+```{r, solution_01a}
+### your code here
+library(ggplot2)
+ggplot(df_low_high, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y",
+       x = "Input (x)",
+       y = "Response (y)")
+```
+
+**Is the relationship linear or non-linear?**  
+Visual inspection of the scatter plot does not show a linear relationship between the input x and response y. The points do not suggest a straight line. It looks like points are following a curve suggesting non-linear relationship.
+
+Though it is only required to visualize, for my understanding, I tried to use geom_smooth() to make sure I was visualizing correctly. I then used lm() to fit a linear regression model and check for the R-squared values. The below code outputs the R squared value which is too far from 1 suggesting it is not linear relationship.
+
+```{r, relationship}
+library(ggplot2)
+ggplot(df_low_high, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y",
+       x = "Input (x)",
+       y = "Response (y)") +
+  geom_smooth()
+
+### using lm() to fit a linear regression model
+lm_model <- lm(y ~ x, data = df_low_high)
+summary(lm_model)
+```
+
+### 1b)
+
+It's time fit the models! You must fit 9 models using the `lm()` function and the formula interface. You used both the `lm()` function and the formula interface in the previous assignment. However, this time you must specify the appropriate polynomial features. You are not allowed to use any functions to generate the polynomials. You **MUST** manually type each polynomial feature in the formulas!  
+
+**Complete the code chunks below by calling the `lm()` function with the appropriate formula and correctly specifying the `data` argument. The result are assigned to variable names defined for you in each of the code chunks. The variable names and the comment within each code chunk specifies the polynomial degree you should use.**  
+
+**You must use the complete data for fitting the models.**  
+
+#### SOLUTION
+
+
+```{r, solution_01b_a, eval=FALSE}
+### linear relationship (degree 1)
+fit_lm_1 <- lm(y ~ x, data = df_low_high)
+summary(fit_lm_1)
+```
+
+
+```{r, solution_01b_b, eval=FALSE}
+### quadratic relationship (degree 2)
+fit_lm_2 <- lm(y ~ x + I(x^2), data = df_low_high)
+summary(fit_lm_2)
+```
+
+
+```{r, solution_01b_c, eval=FALSE}
+### cubic relationship (degree 3)
+fit_lm_3 <- lm(y ~ x + I(x^2) + I(x^3), data = df_low_high)
+summary(fit_lm_3)
+```
+
+
+```{r, solution_01b_d, eval=FALSE}
+### degree 4
+fit_lm_4 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4), data = df_low_high)
+summary(fit_lm_4)
+```
+
+
+```{r, solution_01b_e, eval=FALSE}
+### degree 5
+fit_lm_5 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5), data = df_low_high)
+summary(fit_lm_5)
+```
+
+
+```{r, solution_01b_f, eval=FALSE}
+### degree 6
+fit_lm_6 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6), data = df_low_high)
+summary(fit_lm_6)
+```
+
+
+```{r, solution_01b_g, eval=FALSE}
+### degree 7
+fit_lm_7 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7), data = df_low_high)
+summary(fit_lm_7)
+```
+
+
+```{r, solution_01b_h, eval=FALSE}
+### degree 8
+fit_lm_8 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8), data = df_low_high)
+summary(fit_lm_8)
+```
+
+
+```{r, solution_01b_i, eval=FALSE}
+### degree 9
+fit_lm_9 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9), data = df_low_high)
+summary(fit_lm_9)
+```
+
+
+### 1c)
+
+You fit 9 regression models, it's time to pick the best one! You will initially make your selection based on the training set performance.  
+
+**Calculate the training set RMSE for each model. It is up to you as to how to organize the RMSE values and display the results. Bare minimum, you must display the RMSE for each model. You are only allowed to use functions from lecture.**  
+
+#### SOLUTION
+
+```{r, solution_01c}
+
+### tedious way
+fit_lm_1 <- lm(y ~ x, data = df_low_high)
+fit_lm_2 <- lm(y ~ x + I(x^2), data = df_low_high)
+fit_lm_3 <- lm(y ~ x + I(x^2) + I(x^3), data = df_low_high)
+fit_lm_4 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4), data = df_low_high)
+fit_lm_5 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5), data = df_low_high)
+fit_lm_6 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6), data = df_low_high)
+fit_lm_7 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7), data = df_low_high)
+fit_lm_8 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8), data = df_low_high)
+fit_lm_9 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9), data = df_low_high)
+
+### rmse for models
+rmse_lm_1 <- modelr::rmse(fit_lm_1, data = df_low_high)
+rmse_lm_2 <- modelr::rmse(fit_lm_2, data = df_low_high)
+rmse_lm_3 <- modelr::rmse(fit_lm_3, data = df_low_high)
+rmse_lm_4 <- modelr::rmse(fit_lm_4, data = df_low_high)
+rmse_lm_5 <- modelr::rmse(fit_lm_5, data = df_low_high)
+rmse_lm_6 <- modelr::rmse(fit_lm_6, data = df_low_high)
+rmse_lm_7 <- modelr::rmse(fit_lm_7, data = df_low_high)
+rmse_lm_8 <- modelr::rmse(fit_lm_8, data = df_low_high)
+rmse_lm_9 <- modelr::rmse(fit_lm_9, data = df_low_high)
+
+rmse_lm_values <- c(rmse_lm_1, rmse_lm_2, rmse_lm_3, rmse_lm_4,
+                 rmse_lm_5, rmse_lm_6, rmse_lm_7, rmse_lm_8, rmse_lm_9)
+rmse_data <- data.frame(Degree = 1:9, RMSE = rmse_lm_values)
+# line graph for polynomial order v/s RMSE
+ggplot(rmse_data, aes(x = Degree, y = RMSE)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Polynomial Order vs. RMSE",
+       x = "Polynomial Order",
+       y = "RMSE")
+```
+
+### 1d)
+
+There are many different performance metrics we can use to compare models. For this problem, we will consider R-squared in addition to the RMSE.  
+
+**Calculate the training set R-squared for each model. It is up to you as to how to organize the R-squared values and display the results. Bare minimum, you must display the R-squared for each model. You are only allowed to use functions from lecture.**  
+
+#### SOLUTION
+
+```{r, solution_01d}
+### add as many code chunks as necessary
+rsquared_data <- data.frame(
+  Degree = c(1, 2, 3, 4, 5, 6, 7, 8, 9),
+  R_squared = c(
+    modelr::rsquare(fit_lm_1, data = df_low_high),
+    modelr::rsquare(fit_lm_2, data =df_low_high),
+    modelr::rsquare(fit_lm_3, data = df_low_high),
+    modelr::rsquare(fit_lm_4, data = df_low_high),
+    modelr::rsquare(fit_lm_5, data = df_low_high),
+    modelr::rsquare(fit_lm_6, data = df_low_high),
+    modelr::rsquare(fit_lm_7, data = df_low_high),
+    modelr::rsquare(fit_lm_8, data = df_low_high),
+    modelr::rsquare(fit_lm_9, data = df_low_high)
+  )
+)
+
+# Print the R-squared values
+print(rsquared_data)
+# line graph for polynomial order v/s RMSE
+ggplot(rsquared_data, aes(x = Degree, y = R_squared)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Polynomial Order vs. R_squared",
+       x = "Polynomial Order",
+       y = "R_squared")
+```
+
+### 1e)
+
+**Which model is the best according to the training set performance metrics? Why did you make the selection that you did? Do the two performance metrics agree on the best model?**  
+
+#### SOLUTION
+9th Degree polynomial is best model according to the training set performance metrics. 
+
+Becuase 9th degree polynomial has the lowest RMSE value and highest R-squared value closest to 1 which generally indicates best fit. The error decreases as the degree of polynomial increases because the model is trying to accomodate all the points (which is also kind of overfitting). The selection was made considering both RMSE and R-squared -How well the model was able to fit to data that it was trained on.
+
+Yes the two performance metrics agree on the best model which is 9th model - fit_lm_9.
+
+### 1f)
+
+Let's dive deeper into a few of the models. You will visualize the coefficient summaries for three models to examine the number of statistically significant features and to get an idea of the uncertainty on the coefficients. Regardless of your answer to Problem 1e), you must examine the coefficients for the quadratic model (degree 2), the 6th degree model, and the 9th degree model.  
+
+You used the `coefplot()` function from the `coefplot` package to visualize model coefficient summaries in the previous assignment. You could call `coefplot::coefplot()` three different times, one for each model. However, the `coefplot` package has a useful "helper" function dedicated to visualizing the coefficients across multiple models. This function is named `coefplot::multiplot()`. The `coefplot::multiplot()` syntax is similar to `coefplot::coefplot()`. You pass in the model objects as arguments to the function. You must separate each model with a comman, `,`, within the function call. The `coefplot::multiplot()` function takes care of everything for you.  
+
+**Visualize the coefficient summaries for the quadratic (degree 2), 6th degree, and 9th degree polynomial models using the `coefplot::multiplot()` function.**  
+
+**You do NOT need to load the `coefplot` package. The `::` operator allows accessing the function `multiplot()` from within the `coefplot` library.**  
+
+#### SOLUTION
+```{r, install}
+# Install and load the coefplot package
+if (!requireNamespace("coefplot", quietly = TRUE)) {
+  install.packages("coefplot")
+}
+
+library(coefplot)
+```
+
+```{r, solution_01f}
+### add your code here
+coefplot::multiplot(fit_lm_2, fit_lm_6, fit_lm_9)
+```
+
+### 1g)
+
+Some of the coefficients are present in all three models displayed in the figure from Problem 1f), while a few of the coefficients are only present in one of the models. Let's look closely at the previous figure to try and interpret the model behavior.  
+
+**Are the coefficient estimates similar for those coefficients present in at least 2 of the models visualized in the previous figure?**  
+
+**Is the level or amount of uncertainty associated with the coefficients consistent across the three models?**  
+
+#### SOLUTION
+
+What do you think?  
+
+The coefficient estimates are not very similar within the models and they vary a lot. The level of uncertainty associated with the coefficients also vary across three models. 
+
+## Problem 02
+
+We discussed in lecture the importance of visualizing predictive model trends. This is an important and useful way of interpreting model behavior because it allows us to "see" what the model "thinks" happens at input values **not** present in the original training set. Creating such visualizations requires creating a new data set. Such data sets can require careful planning when there are dozens to hundreds of inputs. However, our present application has a single input and thus it is easy to define a meaningful *input grid* to support visualizing trends.  
+
+### 2a)
+
+You must create the input grid to support visualization by defining a variable `x` within a data.frame (tibble) that consists of 201 evenly spaced points between the training set minimum and maximum values.  
+
+**The code chunk below is started for you. The `tibble::tibble()` function defines a tibble object. The data variable `x` is assigned within that tibble. You must complete that line of code by using an appropriate function which creates a sequence of values from a lower bound to an upper bound. You must use 201 evenly spaced points.**  
+
+**The lower bound must equal the input training set minimum value and the upper bound must equal the input training set maximum value.**  
+
+*HINT*: The lecture slides shows how to create this kind of object...  
+
+#### SOLUTION
+
+```{r, solution_02a, eval=FALSE}
+input_viz <- tibble::tibble(
+  x = seq(min(df_low_high$x), max(df_low_high$x), length.out = 201)
+)
+```
+
+If you created `input_viz` correctly, it should have 201 rows. The code chunk below checks the number of rows for you.  
+
+```{r, solution_02a_b, eval=FALSE}
+input_viz %>% nrow()
+```
+
+### 2b)
+
+You must now make predictions for each model! In lecture, we discussed the importance including two types of uncertainty when we make predictions. However, since we are at the beginning of the semester, you are only responsible for making predictions of the **trend** or **average response**. Your returned predictions will therefore consist of numeric vectors.  
+
+**Complete the code chunks below by calling the appropriate function for making predictions for each model. The returned predictions are assigned must be assigned to the variables named in the code chunk below. The comments and the variable names specify which model should be used.**  
+
+*HINT*: Pay close attention to which data set you use when making the predictions...  
+
+#### SOLUTION
+
+```{r, solution_02b_a, eval=FALSE}
+### linear relationship (degree 1) predictions
+viz_trend_1 <- predict(fit_lm_1, input_viz)
+```
+
+```{r, solution_02b_b, eval=FALSE}
+### quadratic relationship (degree 2) predictions
+viz_trend_2 <- predict(fit_lm_2, input_viz)
+```
+
+```{r, solution_02b_c, eval=FALSE}
+### cubic relationship (degree 3) predictions
+viz_trend_3 <- predict(fit_lm_3, input_viz)
+```
+
+```{r, solution_02b_d, eval=FALSE}
+### degree 4
+viz_trend_4 <- predict(fit_lm_4, input_viz)
+```
+
+```{r, solution_02b_e, eval=FALSE}
+### degree 5
+viz_trend_5 <- predict(fit_lm_5, input_viz)
+```
+
+```{r, solution_02b_f, eval=FALSE}
+### degree 6
+viz_trend_6 <- predict(fit_lm_6, input_viz)
+```
+
+```{r, solution_02b_g, eval=FALSE}
+### degree 7
+viz_trend_7 <- predict(fit_lm_7, input_viz)
+```
+
+```{r, solution_02b_h, eval=FALSE}
+### degree 8
+viz_trend_8 <- predict(fit_lm_8, input_viz)
+```
+
+```{r, solution_02b_i, eval=FALSE}
+### degree 9
+viz_trend_9 <- predict(fit_lm_9, input_viz)
+```
+
+
+### 2c)
+
+Let's manipulate the data before visualizing the predictions. This way we can organize the data into a "tidy format" to support proper visualization strategies.  
+
+The code chunk below is started for you. The `input_viz` object is piped into the `mutate()` function where two data variables are assigned, `pred_trend` and `poly_degree`. The predictions made in the previous question will be assigned to the `pred_trend` data variable. You will manually assign the `poly_degree` variable for the model which made the predictions. Please note that you only need to provide a scalar value for `poly_degree`. The `mutate()` function will make sure to broadcast that scalar value to all rows in the tibble.  
+
+Let's start by compiling the `df_viz_1` object which stores the prediction input and predicted trend for the linear relationship model.  
+
+**Complete the code chunk below by assigning the linear relationship model's predicted trend to the `pred_trend` data variable and assign the value `1` to the `poly_degree` data variable. The `df_viz_1` object is assigned for you and a glimpse is displayed to the screen. If you created the `df_viz_1` object correctly it should consist of 3 variable (columns) and 201 rows.**  
+
+#### SOLUTION
+
+```{r, solution_02c, eval=FALSE}
+df_viz_1 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_1,
+         poly_degree = 1)
+
+df_viz_1 %>% glimpse()
+```
+
+### 2d)
+
+You can now visualize the predicted trend for the linear relationship! You will use a line to visualize the trend so that way the smooth sequential trend is visualized.  
+
+**Pass the `df_viz_1` tibble into `ggplot()`. Map the `x` aesthetic to the `x` variable within the "parent" `ggplot()` call. Add the `geom_line()` layer and map the `y` aesthetic to the `pred_trend` variable within the `geom_line()` geom. Thus, you should NOT map both `x` and `y` aesthetics in the "parent" `ggplot()` call.**  
+
+#### SOLUTION
+
+```{r, solution_02d}
+### add your code here
+input_viz <- tibble::tibble(
+  x = seq(min(df_low_high$x), max(df_low_high$x), length.out = 201)
+)
+
+viz_trend_1 <- predict(fit_lm_1, input_viz)
+
+input_viz <- tibble::tibble(
+  x = seq(min(df_low_high$x), max(df_low_high$x), length.out = 201)
+)
+
+df_viz_1 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_1,
+         poly_degree = 1)
+
+ggplot(data = df_viz_1, aes(x = x)) +
+  geom_line(aes(y = pred_trend)) +
+  labs(title = "Linear Relationship Trend Visualization",
+       x = "Input Variable (x)",
+       y = "Predicted Trend (Linear)")
+```
+
+### 2e)
+
+Let's add further context to the predictive trend visualization by overlaying the original training set scatter plot. We thus need to create a graphic that uses two different data sets. This is ok! Each `geom_*` function has a `data` argument. By default, the `geom_*` function, (such as `geom_point()` or `geom_line()`) inherits the `data` provided to the "parent" `ggplot()` call. However, we can override this behavior by manually specifying a new data set to the `data` argument within the `geom_*` layer! This effectively allows us to show behavior coming from multiple data sets.  
+
+**Visualize the predicted trend associated with the linear relationship again. Pass the `df_viz_1` tibble into `ggplot()`. Map the `x` aesthetic to the `x` variable within the "parent" `ggplot()` call. However, before adding `geom_line()` add `geom_point()` where you specify the `data` argument in `geom_point()` to be `df_low_high`. Map the `y` aesthetic within `geom_point()` to the `y` variable and manually assign the marker `shape` to 0 and the marker `color` to `'red'`. Add the `geom_line()` layer where you map the `y` aesthetic to the `pred_trend` variable and manually assign the line `size` to 1.**  
+
+Your completed graphic should display the original training set as red open squares and the predicted trend as a black line.  
+
+#### SOLUTION
+
+```{r, solution_02e}
+### add your code here
+ggplot(data = df_viz_1, aes(x = x)) +
+  geom_point(data = df_low_high, aes(y = y), shape = 0, color = 'red') +
+  geom_line(aes(y = pred_trend), size = 1) +
+  labs(title = "Linear Relationship Trend Visualization",
+       x = "Input Variable (x)",
+       y = "Predicted Trend (Linear)")
+```
+
+### 2f)
+
+You visualized the predicted trend associated with 1 model! You must now repeat these steps for the remaining 8 models. You will start by properly organizing the predictive trends from the other 8 models into their own tibbles.  
+
+**Complete the code chunks below. You must assign the predictive trends to the `pred_trend` data variable and assign the correct value for the `poly_degree` data variable. The comments and variable names state the models associated with each code chunk.**  
+
+**NOTE**: This is NOT the most efficient way to properly organize the predictions. More streamlined approaches make use of **functional programming** techniques to create one properly organized and "tidy" data set in just a few lines of code. We will learn how to do that later in the semester. For now though, we will go through the tedious way!  
+
+#### SOLUTION
+
+```{r, solution_02f_a, eval=FALSE}
+### quadratic relationship (degree 2)
+df_viz_2 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_2,
+         poly_degree = 2)
+```
+
+
+```{r, solution_02f_b, eval=FALSE}
+### cubic relationship (degree 3)
+df_viz_3 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_3,
+         poly_degree = 3)
+```
+
+
+```{r, solution_02f_c, eval=FALSE}
+### degree 4
+df_viz_4 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_4,
+         poly_degree = 4)
+```
+
+
+```{r, solution_02f_d, eval=FALSE}
+### degree 5
+df_viz_5 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_5,
+         poly_degree = 5)
+```
+
+
+```{r, solution_02f_e, eval=FALSE}
+### degree 6
+df_viz_6 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_6,
+         poly_degree = 6)
+```
+
+
+```{r, solution_02f_f, eval=FALSE}
+### degree 7
+df_viz_7 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_7,
+         poly_degree = 7)
+```
+
+
+```{r, solution_02f_g, eval=FALSE}
+### degree 8
+df_viz_8 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_8,
+         poly_degree = 8)
+```
+
+
+```{r, solution_02f_h, eval=FALSE}
+### degree 9
+df_viz_9 <- input_viz %>% 
+  mutate(pred_trend = viz_trend_9,
+         poly_degree = 9)
+```
+
+
+### 2g)
+
+Do not worry, you will not create separate plots for each model's predictions! Instead, you will concatenate the 9 tibbles together into a single tibble! You will "stack" the tibbles vertically by *binding the rows* together. This operation works because all 9 `df_viz_*` objects have the same columns! A little planning goes a long way!  
+
+You can vertically concatenate or bind rows via the `bind_rows()` function from `dplyr`. You must provide all data.frames (tibbles) you wish to bind together as arguments to `bind_rows()`. Each data set (argument to the function) must be separated by a comma, `,`. You do **not** need to worry about the `.id` argument to `bind_rows()` for this current operation.  
+
+**The code chunk below creates a variable `df_viz_all`. You must use the `bind_rows()` function to bind or stack together all 9 visualization tibbles.**  
+
+*HINT*: If you created the `df_viz_all` object correctly, it should consist of 1809 rows and 3 columns.  
+
+#### SOLUTION
+
+```{r, solution_02g, eval=FALSE}
+df_viz_all <- bind_rows(df_viz_1, df_viz_2, df_viz_3, df_viz_4, df_viz_5, df_viz_6, df_viz_7, df_viz_8, df_viz_9)
+```
+
+### 2h)
+
+The `df_viz_all` is tidy. A column (variable) exists for each attribute associated with the data. A variable exists for the input, `x`, a variable exists for the predicted trend, `pred_trend`, and an identifier exists which identifies which model made the predictions, `poly_degree`. You will now use all variables to create a faceted figure showing the predictions associated with each model.  
+
+**Pipe the `df_viz_all` object to `ggplot()` and map the `x` aesthetic to the `x` variable within the "parent" `ggplot()` call. Add the `geom_line()` layer and map the `y` aesthetic to the `pred_trend` variable within `geom_line()`. Add the facets via the `facet_wrap()` function. The facets must be a function of the `poly_degree` variable.**  
+
+#### SOLUTION
+
+```{r, solution_02h}
+### add your code here
+generate_trend <- function(model, data) {
+  predict(model, data)
+}
+
+# List to store data frames
+df_viz_list <- list()
+
+# Loop through polynomial degrees
+for (degree in 1:9) {
+  # Generate trend predictions for each degree
+  viz_trend <- generate_trend(get(paste("fit_lm_", degree, sep = "")), input_viz)
+  
+  # Create a data frame for each degree
+  df_viz_list[[degree]] <- input_viz %>% 
+    mutate(pred_trend = viz_trend,
+           poly_degree = degree)
+}
+
+# Combine all data frames into one
+df_viz_all <- bind_rows(df_viz_list)
+
+ggplot(df_viz_all, aes(x = x)) +
+  geom_line(aes(y = pred_trend)) +
+  facet_wrap(~poly_degree)
+```
+
+
+### 2i)
+
+It might be difficult to see what's going on within each facet. Let's "zoom" the y-axis within each facet to give a better picture of the trend associated with each model.  
+
+**Repeat the visualization from the previous problem, but this time set `scales = 'free_y'` within the `facet_wrap()` function.**  
+
+#### SOLUTION
+
+```{r, solution_02i}
+### add your code here
+df_viz_all |>
+  ggplot(aes(x = x)) +
+  geom_line(aes(y = pred_trend)) +
+  facet_wrap(~poly_degree, scales = 'free_y')
+```
+
+### 2j)
+
+Lastly, let's overlay the training set for additional context within each facet. To do so, you must override the `data` argument within the additional `geom_point()` layer, just as you did in Problem 2e).  
+
+**Repeat the visualization from the previous problem, however this time include `geom_point()` in between the "parent" `ggplot()` call and the `geom_line()` layer. You must override the `data` argument within this `geom_point()` layer by assigning `data` to `df_low_high`. You must map the `y` aesthetic directly within `geom_point()` to the `y` variable. Manually specify the marker `shape` to be `0` and the marker `color` to be `'red'` within `geom_point()`.**  
+
+#### SOLUTION
+
+```{r, solution_02j}
+### add your code here
+df_viz_all |>
+  ggplot(aes(x = x)) +
+  geom_point(data = df_low_high, aes(y = y), shape = 0, color = 'red') +
+  geom_line(aes(y = pred_trend)) +
+  facet_wrap(~poly_degree, scales = 'free_y')
+```
+
+### 2k)
+
+**You previously used two performance metrics to identify the best model. How would you describe the predictive trends associated with the best performing model? Do the trends seem consistent with the training set?**  
+
+#### SOLUTION
+
+What do you think?
+Yes, I previously used RMSE and R-Squared to identify the best model - Which happened to be the 9th degree model. In the plot above, the red squares are the data points from the training set and the black line is the predicted trend.
+The predicted trend is well aligned with the training set. The black line follows the distribution and patterns of the actual data points in the training set.
+Visual inspection of the overlaid plot do not identify any discrepancies or areas where the model struggles to capture the underlying patterns.
+
+## Problem 03
+
+You previously selected the best model based on the **training set** alone. Your selection therefore did not consider how well the model will perform on new data! You will now try to identify the best model in hopes of finding one that *generalizes* to new data.  
+
+You will begin by creating a single training/test split. Sometimes this procedure is referred to as a training/validation split, but the motivation and goals are the same. You will randomly partition the data into a dedicated training set and dedicated hold-out set. You will train the models on the training set, and assess their performance on the hold-out set.  
+
+### 3a)
+
+You will use an 80/20 train/test split. Thus, 80% of the data will be used for training the models and 20% of the data will be used to test the models. You will use the base R `sample()` function to create the vector of row indices that will serve as the training set.  
+
+The random seed is specified for you with the `set.seed()` function in the code chunk below. This ensures that the data splitting is **reproducible**. You will therefore get the same split every time you run the code chunk below. Please note, you must run the entire code chunk to ensure reproducibility.  
+
+**Complete the code chunk below. Use the `sample()` function to randomly sample 80% of the rows from the `df_low_high` data set. The `sample()` function randomly selects elements from a provided vector. You must therefore provide a vector that starts at 1 and ends at the number of rows in `df_low_high`. The result of `sample()` must be assigned to the `id_train` variable.**  
+
+**You must then use `id_train` to slice the training set from `df_low_high` and slice all except the `id_train` indices to create the hold-out test set. The training set is `df_train` and the hold-out test set is `df_holdout` in the code chunk below.**  
+
+#### SOLUTION
+
+```{r, solution_03a, eval=FALSE}
+set.seed(202214)
+id_train <- sample(1:nrow(df_low_high), 0.8 * nrow(df_low_high))
+
+df_train <- df_low_high[id_train, ]
+df_holdout <- df_low_high[-id_train, ]
+```
+
+
+### 3b)
+
+Let's visualize the data split so we know which observations were selected for training and which observations were selected for testing.  
+
+**Create a scatter plot using `ggplot2` which visualizes the relationship between the output `y` and the input `x`. You must use the marker color and marker shape to denote the training set from the hold-out test set.**  
+
+**There are multiple ways this figure can be created. It is up to you to make it, but you must create the figure using `ggplot2`. Use this as an opportunity to test out your understanding of the elements of the `ggplot2` philosophy for creating statistical visualizations.**  
+
+#### SOLUTION
+
+```{r, solution_03b}
+### add your code here
+
+id_train <- sample(1:nrow(df_low_high), 0.8 * nrow(df_low_high))
+
+
+ggplot(df_low_high, aes(x = x, y = y, color = factor(ifelse(row.names(df_low_high) %in% id_train, "Training", "Test")))) +
+  geom_point(shape = 19, size = 3) +
+  scale_color_manual(values = c("red", "blue")) +
+  labs(title = "Training and Test Data Split", x = "Input (x)", y = "Output (y)", color = "Data Split") +
+  theme_minimal()
+```
+
+
+### 3c)
+
+You will now fit the 9 polynomials using the training split. You **must NOT** use the complete original data set. You must fit the models using the randomly generated training split.  
+
+**You must use the `lm()` function, type in the correct formula, and assign the correct data set to the `data` argument of the `lm()` function. Again, this is tedious for now, but it is a learning experience!**  
+
+**The comments and variable names state which model should be specified in each code chunk.**  
+
+#### SOLUTION
+
+
+```{r, solution_03c_a, eval=FALSE}
+### linear relationship (degree 1)
+fit_train_1 <-lm(y ~ x, data = df_train)
+```
+
+
+```{r, solution_03c_b, eval=FALSE}
+### quadratic relationship (degree 2)
+fit_train_2 <-lm(y ~ x + I(x^2), data = df_train)
+```
+
+
+```{r, solution_03c_c, eval=FALSE}
+### cubic relationship (degree 3)
+fit_train_3 <-lm(y ~ x + I(x^2) + I(x^3), data = df_train)
+```
+
+
+```{r, solution_03c_d, eval=FALSE}
+### degree 4
+fit_train_4 <-lm(y ~ x + I(x^2) + I(x^3)+ I(x^4), data = df_train)
+```
+
+
+```{r, solution_03c_e, eval=FALSE}
+### degree 5
+fit_train_5 <-lm(y ~ x + I(x^2) + I(x^3)+ I(x^4)+ I(x^5), data = df_train)
+```
+
+
+```{r, solution_03c_f, eval=FALSE}
+### degree 6
+fit_train_6 <-lm(y ~ x + I(x^2) + I(x^3)+ I(x^4)+ I(x^5) + I(x^6), data = df_train)
+```
+
+
+```{r, solution_03c_g, eval=FALSE}
+### degree 7
+fit_train_7 <-lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7), data = df_train)
+```
+
+
+```{r, solution_03c_h, eval=FALSE}
+### degree 8
+fit_train_8 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8), data = df_train)
+```
+
+
+```{r, solution_03c_i, eval=FALSE}
+### degree 9
+fit_train_9 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9), data = df_train)
+```
+
+```{r, RMSE_train}
+df_train <- df_low_high[id_train, ]
+
+# Create an empty list to store models and RMSE values
+fit_train_list <- list()
+rmse_train_values <- numeric()
+
+for (degree in 1:9) {
+  # Fit the model
+  fit_train <- lm(y ~ poly(x, degree), data = df_train)
+  
+  # Store the model in the list
+  fit_train_list[[degree]] <- fit_train
+  
+  # Calculate RMSE and store the value
+  rmse_train <- modelr::rmse(fit_train, data = df_train)
+  rmse_train_values[degree] <- rmse_train
+}
+
+rmse_train_values
+
+```
+### For training split, 9th degree has the least RMSE value so that's considered to be best.
+
+### 3d)
+
+You fit 9 models on the training split, it is now time to assess their performance on the dedicated **hold-out** test split! You are therefore evaluating the models on data **not** used for estimating their coefficients!  
+
+**Calculate the hold-out set RMSE for each model. It is up to you as to how to organize the RMSE values and display the results. Bare minimum, you must display the RMSE for each model. You are only allowed to use functions from lecture.**  
+
+#### SOLUTION
+
+```{r, solution_03d}
+### add as many code chunks as you feel are necessary
+df_train <- df_low_high[id_train, ]
+df_holdout <- df_low_high[-id_train, ]
+
+fit_train_1 <-lm(y ~ x, data = df_train)
+fit_train_2 <-lm(y ~ x + I(x^2), data = df_train)
+fit_train_3 <-lm(y ~ x + I(x^2) + I(x^3), data = df_train)
+fit_train_4 <-lm(y ~ x + I(x^2) + I(x^3)+ I(x^4), data = df_train)
+fit_train_5 <-lm(y ~ x + I(x^2) + I(x^3)+ I(x^4)+ I(x^5), data = df_train)
+fit_train_6 <-lm(y ~ x + I(x^2) + I(x^3)+ I(x^4)+ I(x^5) + I(x^6), data = df_train)
+fit_train_7 <-lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7), data = df_train)
+fit_train_8 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8), data = df_train)
+fit_train_9 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9), data = df_train)
+
+
+rmse_holdout_1 <- modelr::rmse(fit_train_1, data = df_holdout)
+rmse_holdout_2 <- modelr::rmse(fit_train_2, data = df_holdout)
+rmse_holdout_3 <- modelr::rmse(fit_train_3, data = df_holdout)
+rmse_holdout_4 <- modelr::rmse(fit_train_4, data = df_holdout)
+rmse_holdout_5 <- modelr::rmse(fit_train_5, data = df_holdout)
+rmse_holdout_6 <- modelr::rmse(fit_train_6, data = df_holdout)
+rmse_holdout_7 <- modelr::rmse(fit_train_7, data = df_holdout)
+rmse_holdout_8 <- modelr::rmse(fit_train_8, data = df_holdout)
+rmse_holdout_9 <- modelr::rmse(fit_train_9, data = df_holdout)
+
+rmse_values <- c(rmse_holdout_1, rmse_holdout_2, rmse_holdout_3, rmse_holdout_4,
+                 rmse_holdout_5, rmse_holdout_6, rmse_holdout_7, rmse_holdout_8, rmse_holdout_9)
+rmse_values
+
+rmse_data <- data.frame(
+  Degree = c(1, 2, 3, 4, 5, 6, 7, 8, 9),
+  RMSE = c(
+    modelr::rmse(fit_train_1, df_holdout),
+    modelr::rmse(fit_train_2, df_holdout),
+    modelr::rmse(fit_train_3, df_holdout),
+    modelr::rmse(fit_train_4, df_holdout),
+    modelr::rmse(fit_train_5, df_holdout),
+    modelr::rmse(fit_train_6, df_holdout),
+    modelr::rmse(fit_train_7, df_holdout),
+    modelr::rmse(fit_train_8, df_holdout),
+    modelr::rmse(fit_train_9, df_holdout)
+  )
+)
+
+# line graph for polynomial order v/s RMSE
+ggplot(rmse_data, aes(x = Degree, y = RMSE)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Polynomial Order vs. RMSE for held out set",
+       x = "Polynomial Order",
+       y = "RMSE") +
+  scale_x_continuous(breaks = rmse_data$Degree)
+```
+
+
+### 3e)
+
+**Which model is the best according to the hold-out evaluation? Is it the same model as identified from the training set performance? How does the hold-out set rank the model identified as the best according to the training set?**  
+
+#### SOLUTION
+
+What do you think? 
+Based on the hold-out evaluation, the best model is the quadratic degree (2nd degree) model, as it has the minimum RMSE value on the hold-out set.
+
+However, the best model according to the hold-out set is not the same as the one identified from the training set performance. In the training set, the 9th degree polynomial had the least RMSE value.
+
+The hold-out set ranks the model identified as the best according to the training set (9th degree polynomial) differently, favoring the quadratic degree model. This difference suggests that the 9th degree polynomial model might have overfitted to the training set and did not generalize well to the hold-out set. The quadratic degree model appears to have better generalization performance on unseen data, as indicated by its lower RMSE on the hold-out set.
+
+
+### 3f)
+
+The models named `fit_lm_*` were trained on the entire data set, while the models named `fit_train_*` were trained on the random training split. Although the training sizes are different, let's try to get some idea on the sensitivity of the coefficients to the data.  
+
+You must use the `coefplot::multiplot()` function to compare the coefficients based on the original data and based on the training split data. You will compare the same model, but the data used for estimating the coefficients are different.  
+
+**Compare the coefficient summaries using `coefplot::multiplot()` for the model that was considered to be the best based on the training set.**  
+
+**How do the coefficients compare between the two slightly different training sets?**  
+
+#### SOLUTION
+
+```{r, solution_03f}
+### add your code here
+coefplot::multiplot(fit_lm_2, fit_train_2)
+```
+
+What do you think?
+
+The coefficients are generally quite similar between the two models. The largest difference is for the I(x^2) term, where fit_lm_2 has a more negative coefficient than fit_train_2.It suggests that the two models are capturing very similar relationships between the independent variables and the outcome variable.
+
+### 3g)
+
+**Compare the coefficient summaries using `coefplot::multiplot()` for the model that was considered to be the best based on the train/test split evaluation.**  
+
+**How do the coefficients compare between the two slightly different training sets?**  
+
+#### SOLUTION
+
+
+```{r, solution_03g}
+### add your code here
+coefplot::multiplot(fit_lm_2, fit_train_2)
+```
+
+What do you think?  
+The coefficients are generally quite similar between the two models. The largest difference is for the I(x^2) term, where fit_lm_2 has a more negative coefficient than fit_train_2.It suggests that the two models are capturing very similar relationships between the independent variables and the outcome variable.
+
+## Problem 04
+
+You have fit the 9 polynomials and assessed their performance multiple ways. It's time to now use **resampling** to understand the reliability of your performance assessments. You will specifically use the `caret` package to manage all aspects of data splitting, training, and evaluating the models. If you do not have the `caret` package downloaded and installed please do so before proceeding. You only need to download and install `caret` once.  
+
+### 4a)
+
+**Load the `caret` library into the environment with the `library()` function.**  
+
+#### SOLUTION
+
+```{r, solution_04a}
+### add your code here
+library(lattice)
+library(caret)
+```
+
+### 4b)
+
+The resampling scheme is specified by the `trainControl()` function in `caret`. The type of scheme is controlled by the `method` argument. For k-fold cross-validation, the `method` argument must equal `'cv'` and the number of folds is controlled by the `number` argument. We could instruct `caret` to use repeated cross-validation by specifying `method` to be `'repeatedcv'` and including the number of repeats via the `repeates` argument. However, we will follow the process consistent with lecture and use 5-fold cross-validation for this assignment.  
+
+**Specify the resampling scheme by completing the code chunk below. Assign the result of the `trainControl()` function to the `my_ctrl` variable.**  
+
+**How many times will a model be trained and tested using the desired resampling scheme?**  
+
+#### SOLUTION
+
+```{r, solution_04b, eval=FALSE}
+my_ctrl <- trainControl(method = "cv", number = 5)
+```
+
+How many times will an individual model be trained and tested?  
+5 times. 
+
+### 4c)
+
+The `caret` package requires that we specify a primary performance metric of interest, even though it will calculate several performance metrics for us. Please remember that the response is a continuous variable.  
+
+**You must select a primary performance metric to use to compare the models. Specify an appropriate metric to use for this modeling task. Choices must be written as a string and assigned to the `my_metric` variable. Possible choices are "Accuracy", "RMSE", "Kappa", "Rsquared", "MAE", "ROC". Why did you make the the choice that you did?**  
+
+*NOTE*: Not all of the listed performance metrics above are relevant to regression problems!  
+
+```{r, solution_4c, eval=FALSE}
+my_metric <- "RMSE"
+```
+
+Why did you make your choice?  
+Because RMSE is suitable to measure the average magnitude of the errors between predicted and actual values.
+
+### 4d)
+
+You will now go through training and evaluating the 9 polynomial models with the `train()` function from `caret`. You will use the formula interface to specify the model relationship. You must fit a linear (first order polynomial), quadratic (second order polynomial), cubic (third order polynomial), and so on up to and including a 9th order polynomial just as you did before. The difference is that you are not calling the `lm()` function directly. Instead, the `caret` package will manage the fitting process for you.  
+
+Please note that you will use the entire data set for training and evaluating with resampling. The `caret` package will manage the data splitting for you.  
+
+**You must specify the `method` argument in the `train()` function to be `"lm"`. You must specify the `metric` argument to be `my_metric` that you selected in Problem 4c). You must specify the `trControl` argument to be `my_ctrl` that you specified in Problem 4b). Don't forget to set the `data` argument to be `df_low_high`!**  
+
+**The variable names below and comments are used to tell you which polynomial order you should assign to which object.**  
+
+*NOTE*: The models are trained in separate code chunks that way you can run each model apart from the others. The `caret` object is displayed to the screen for you within each code chunk. This will make it obvious when each model completes the resampling process.  
+
+#### SOLUTION
+
+```{r, solution_04d_a, eval=FALSE}
+### linear relationship (degree 1)
+set.seed(2001)
+mod_lowhigh_1 <- train(y ~ x,
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_1
+```
+
+
+```{r, solution_04d_b, eval=FALSE}
+### quadratic relationship (degree 2)
+set.seed(2001)
+mod_lowhigh_2 <- train(y ~ x + I(x^2),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_2
+```
+
+
+```{r, solution_04d_c, eval=FALSE}
+### cubic relationship (degree 3)
+set.seed(2001)
+mod_lowhigh_3 <- train(y ~ x + I(x^2) + I(x^3),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_3
+```
+
+
+```{r, solution_04d_d, eval=FALSE}
+### degree 4
+set.seed(2001)
+mod_lowhigh_4 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_4
+```
+
+
+```{r, solution_04d_e, eval=FALSE}
+### degree 5
+set.seed(2001)
+mod_lowhigh_5 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_5
+```
+
+
+```{r, solution_04d_f, eval=FALSE}
+### degree 6
+set.seed(2001)
+mod_lowhigh_6 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_6
+```
+
+
+```{r, solution_04d_g, eval=FALSE}
+### degree 7
+set.seed(2001)
+mod_lowhigh_7 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_7
+```
+
+
+```{r, solution_04d_h, eval=FALSE}
+### degree 8
+set.seed(2001)
+mod_lowhigh_8 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_8
+```
+
+
+```{r, solution_04d_i, eval=FALSE}
+### degree 9
+set.seed(2001)
+mod_lowhigh_9 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9),
+                       data = df_low_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowhigh_9
+```
+
+### 4e)
+
+The code chunk below compiles all of the model training results for you. The `lowhigh_results` object can be used to compare the models through tables and visualizations.  
+
+```{r, assemble_resampling_lowhigh, eval=FALSE}
+lowhigh_results = resamples(list(fit_01 = mod_lowhigh_1,
+                                 fit_02 = mod_lowhigh_2,
+                                 fit_03 = mod_lowhigh_3,
+                                 fit_04 = mod_lowhigh_4,
+                                 fit_05 = mod_lowhigh_5,
+                                 fit_06 = mod_lowhigh_6,
+                                 fit_07 = mod_lowhigh_7,
+                                 fit_08 = mod_lowhigh_8,
+                                 fit_09 = mod_lowhigh_9))
+```
+
+The `caret` package provides default summary and plot methods which rank the models based on their resampling hold-out results. The `summary()` function prints a table like object which summarizes the resampling results. The `dotplot()` function creates a dot plot with confidence intervals on the resampling performance metrics.  
+
+**You must display the summary table using the `summary()` function for the resampling results and visualize the resampling results using the `dotplot()` function. In both the `summary()` and `dotplot()` functions, you must specify the `metric` argument to be primary performance metric that you specified previously.**  
+
+**Which model is the best according to the resampling results?**  
+
+#### SOLUTION
+
+```{r, solution_04e_a}
+### summary for your performance metric
+my_ctrl <- trainControl(method = "cv", number = 5)
+my_metric <- "RMSE"
+
+set.seed(2001)
+
+mod_lowhigh_1 <- train(y ~ x, data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_2 <- train(y ~ x + I(x^2), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_3 <- train(y ~ x + I(x^2) + I(x^3), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_4 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_5 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_6 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_7 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_8 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+mod_lowhigh_9 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9), data = df_low_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+lowhigh_results = resamples(list(fit_01 = mod_lowhigh_1,
+                                 fit_02 = mod_lowhigh_2,
+                                 fit_03 = mod_lowhigh_3,
+                                 fit_04 = mod_lowhigh_4,
+                                 fit_05 = mod_lowhigh_5,
+                                 fit_06 = mod_lowhigh_6,
+                                 fit_07 = mod_lowhigh_7,
+                                 fit_08 = mod_lowhigh_8,
+                                 fit_09 = mod_lowhigh_9))
+
+summary(lowhigh_results, metric = "RMSE")
+```
+
+
+```{r, solution_04e_b}
+### dotplot for your performance metric
+dotplot(lowhigh_results, metric = "RMSE")
+```
+
+Which model is the best?  
+
+mod_lowhigh_3 looks like the best model. The dotplot() function creates a dot plot with confidence intervals for the resampling performance metrics. Models with dots closer to the bottom (for metrics like RMSE) are considered better. Also, mod_lowhigh_3 has all minimum value of RMSE.
+
+### 4f)
+
+The `mod_lowhigh_*` variables are `caret` model objects and are essentially lists. Each object, `mod_lowhigh_1` through `mod_lowhigh_9` consists of numerous fields which can be accessed via the dollar sign operator, `$`. One such field, `$finalModel`, provides access to the underlying `lm()` model object associated with the **final fit**. Thus, even though `mod_lowhigh_1` is a `caret` object the field `mod_lowhigh_1$finalModel` is an `lm()` object just like the `fit_lm_1` object you fit at the beginning of the assignment. We can apply functions to help interpret the model behavior just as we did previously.  
+
+**You must compare the coefficients between the top 3 models identified by the resampling procedure using the `coefplot::multiplot()` function.**  
+
+**Are the coefficient estimates similar for those coefficients present in at least 2 of the models visualized in the previous figure?**  
+
+**Is the level or amount of uncertainty associated with the coefficients consistent across the three models?**  
+
+#### SOLUTION
+
+```{r, solution_04f}
+### your code here
+coefplot::multiplot(mod_lowhigh_3, mod_lowhigh_2, mod_lowhigh_1)
+```
+
+What do you think? 
+The coefficients of I(x^2) are consistent across the mod_lowhigh_2 and mod_lowhigh_3. Confidence intervals of mod_lowhigh_2 and mod_lowhigh_3 overlap across different models, it implies that the uncertainty in those coefficients is consistent.
+
+## Problem 05
+
+You have completed an entire regression problem! You correctly used resampling to train and compare simple to complex models in order to identify the most appropriate model that generalizes to new data!  
+
+However, let's try and gain additional insight by repeating the resampling procedure on another data set. The data used in the previous problems were generated using a "high" level of noise. You will now train and compare the same 9 polynomial models, but with data coming from a "low" level of noise. The underlying **data generating process** is the same. All that changed is the noise level. We will learn what that means in more detail throughout this semester. For now, the main purpose is to compare what happens when you can train models under different noise levels.  
+
+The low noise level data are loaded in the code chunk below. The glimpse shows that the variable names are the same as those in the high noise level data from before.  
+
+```{r, read_low_low_data}
+path_low_low <- 'hw02_lowsize_lownoise.csv'
+
+df_low_low <- readr::read_csv(path_low_low, col_names = TRUE)
+```
+
+```{r, glimpse_low_low_data}
+df_low_low %>% glimpse()
+```
+
+### 5a)
+
+**Create a scatter plot between the input, `x`, and the response, `y`, for the low noise level data. How does this figure compare to the one you made in Problem 1a)?**  
+
+#### SOLUTION
+
+```{r, solution_05a}
+### your code here
+ggplot(df_low_low, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y",
+       x = "Input (x)",
+       y = "Response (y)")
+ggplot(df_low_high, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y",
+       x = "Input (x)",
+       y = "Response (y)")
+```
+
+How does it compare?  
+
+The scatter plot from high noise data looks more scattered making it difficult to generalize a function to relate x and y. But the low noise data have many points that overlap and clearly show a pattern of relations between x and y.
+
+### 5b)
+
+You will not repeat all of the previous exercises. Instead, you will jump straight to training and evaluating models with resampling. You will use the same resampling scheme and primary performance metric that you used in Problem 04 to train the 9 polynomial models. This time however you will use the low noise level data.  
+
+**Train the 9 polynomial models using the required formula interface, `method`, `trControl`, and `metric` arguments that you used in Problem 04. However, pay close attention and set the `data` argument to be `df_low_low`.**  
+
+**The variable names and comments specify which polynomial to use.**  
+
+*NOTE*: again this is VERY tedious...we will see more efficient ways of going through such a process later in the semester.  
+
+#### SOLUTION
+
+```{r, solution_05b_a, eval=FALSE}
+### linear relationship (degree 1)
+set.seed(2001)
+mod_lowlow_1 <- train(y ~ x,
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_1
+```
+
+
+```{r, solution_05b_b, eval=FALSE}
+### quadratic relationship (degree 2)
+set.seed(2001)
+mod_lowlow_2 <- train(y ~ x + I(x^2),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_2
+```
+
+
+```{r, solution_05b_c, eval=FALSE}
+### cubic relationship (degree 3)
+set.seed(2001)
+mod_lowlow_3 <- train(y ~ x + I(x^2) + I(x^3),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_3
+```
+
+
+```{r, solution_05b_d, eval=FALSE}
+### degree 4
+set.seed(2001)
+mod_lowlow_4 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_4
+```
+
+
+```{r, solution_05b_e, eval=FALSE}
+### degree 5
+set.seed(2001)
+mod_lowlow_5 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_5
+```
+
+
+```{r, solution_05b_f, eval=FALSE}
+### degree 6
+set.seed(2001)
+mod_lowlow_6 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_6
+```
+
+
+```{r, solution_05b_g, eval=FALSE}
+### degree 7
+set.seed(2001)
+mod_lowlow_7 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_7
+```
+
+
+```{r, solution_05b_h, eval=FALSE}
+### degree 8
+set.seed(2001)
+mod_lowlow_8 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_8
+```
+
+
+```{r, solution_05b_i, eval=FALSE}
+### degree 9
+set.seed(2001)
+mod_lowlow_9 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9),
+                       data = df_low_low,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_lowlow_9
+```
+
+### 5c)
+
+The code chunk below compiles all of the resampling results together for the models associated with the low noise level data.  
+
+```{r, assemble_resampling_lowlow, eval=FALSE}
+lowlow_results = resamples(list(fit_01 = mod_lowlow_1,
+                                fit_02 = mod_lowlow_2,
+                                fit_03 = mod_lowlow_3,
+                                fit_04 = mod_lowlow_4,
+                                fit_05 = mod_lowlow_5,
+                                fit_06 = mod_lowlow_6,
+                                fit_07 = mod_lowlow_7,
+                                fit_08 = mod_lowlow_8,
+                                fit_09 = mod_lowlow_9))
+```
+
+As with the `lowhigh_results` object, you can now visualize summary statistics associated with the resampling results and identify the best performing models.  
+
+**You must display the summary table using the `summary()` function for the resampling results and visualize the resampling results using the `dotplot()` function. In both the `summary()` and `dotplot()` functions, you must specify the `metric` argument to be primary performance metric that you specified previously.**  
+
+**Which model is the best according to the resampling results?**  
+
+#### SOLUTION
+
+```{r, solution_05c_a}
+### print the resampling summary for the performance metric
+summary(lowhigh_results, metric = "RMSE")
+```
+
+
+```{r, solution_05c_b}
+### visualize the dotplot for the performance metric
+dotplot(lowhigh_results, metric = "RMSE")
+```
+
+Which model is the best?  
+fit_03 is the best model as it is the lowest on the plot with minimal RMSE values compared to other models.
+
+### 5d)
+
+The `df_low_high` and `df_low_low` data have the same sample size, but the data were generated under different uncontrollable noise levels. This exercise is analogous to recording measurements with worn out low fidelity sensors (`df_low_high`) compared to new modern high resolution sensors (`df_low_low`). The low level of noise gives a "better" glimpse of the real underlying **data generating process**.  
+
+**Did the resampling scheme identify the same model as the best model for the two noise cases? Did the models identified to be poor for the high noise case remain poor for the low noise case?**  
+
+#### SOLUTION
+
+What do you think?  
+Yes, the resampling scheme identified the same model as the best model for both noise cases. This is evident from the resampling results summary and dotplot. The consistency in model ranking across different noise levels suggests robustness and generalizability of the selected model.
+
+The dotplot generated by the dotplot() function further reinforces this observation. The dots representing the best model are consistently aligned for both noise cases.
+
+The stability in model selection indicates that the chosen model performs well across different noise levels, showcasing its reliability.
+
+Did the models identified to be poor for the high noise case remain poor for the low noise case?
+Yes, the models identified to be poor for the high noise case generally remained poor for the low noise case. The resampling results maintain a consistent ranking of models across noise levels.
+
+## Problem 06
+
+You will repeat the resampling exercise with one more data set. This version of the data were generated under the high noise level, as with the first data set you worked with. However, this version of the data has more observations. Thus, you are still working with noisy data, but you now have a higher sample size to work with. This problem therefore focuses on the influence of sample size on the modeling effort.  
+
+The high sample size high noise level data are loaded in the code chunk below. The glimpse shows that the variable names are the same as those in the previous two cases.  
+
+```{r, read_high_high_data}
+path_high_high <- 'hw02_highsize_highnoise.csv'
+
+df_high_high <- readr::read_csv(path_high_high, col_names = TRUE)
+```
+
+```{r, glimpse_high_high_data}
+df_high_high %>% glimpse()
+```
+
+
+### 6a)
+
+**Create a scatter plot between the input, `x`, and the response, `y`, for the low noise level data. How does this figure compare to the one you made in Problem 1a)?**  
+
+#### SOLUTION
+
+```{r, solution_06a}
+### your code here
+ggplot(df_high_high, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y - higher sample size and higher noise",
+       x = "Input (x)",
+       y = "Response (y)")
+ggplot(df_low_low, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y - low noise data",
+       x = "Input (x)",
+       y = "Response (y)")
+ggplot(df_low_high, aes(x = x, y = y)) + 
+  geom_point(size = 3) +
+  labs(title = "Scatter Plot of x vs. y - high noise data",
+       x = "Input (x)",
+       y = "Response (y)")
+```
+
+How does it compare?  
+
+The data set also suggest do not form a distinct straight line, suggesting a non-linear relationship between input (x) and response (y) like in df_low_high and df_low_low. As given, this data set has more values compared the other two. The dataset also has more noise than df_low_low as the points are scattered widely around the overall trend, showing considerable variation in response values for similar input values. 
+
+### 6b)
+
+You must execute resampling on the 9 polynomial models using the high sample size and high noise level data.  
+
+**Train the 9 polynomial models using the required formula interface, `method`, `trControl`, and `metric` arguments that you used in Problem 04. However, pay close attention and set the `data` argument to be `df_high_high`.**  
+
+**The variable names and comments specify which polynomial to use.**  
+
+*NOTE*: again this is VERY tedious...we will see more efficient ways of going through such a process later in the semester.  
+
+#### SOLUTION
+
+```{r, solution_06b_a, eval=FALSE}
+### linear relationship (degree 1)
+set.seed(2001)
+mod_highhigh_1 <- train(y ~ x,
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_1
+```
+
+
+```{r, solution_06b_b, eval=FALSE}
+### quadratic relationship (degree 2)
+set.seed(2001)
+mod_highhigh_2 <- train(y ~ x + I(x^2),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_2
+```
+
+
+```{r, solution_06b_c, eval=FALSE}
+### cubic relationship (degree 3)
+set.seed(2001)
+mod_highhigh_3 <- train(y ~ x + I(x^2) + I(x^3),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_3
+```
+
+
+```{r, solution_06b_d, eval=FALSE}
+### degree 4
+set.seed(2001)
+mod_highhigh_4 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_4
+```
+
+
+```{r, solution_06b_e, eval=FALSE}
+### degree 5
+set.seed(2001)
+mod_highhigh_5 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_5
+```
+
+
+```{r, solution_06b_f, eval=FALSE}
+### degree 6
+set.seed(2001)
+mod_highhigh_6 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_6
+```
+
+
+```{r, solution_06b_g, eval=FALSE}
+### degree 7
+set.seed(2001)
+mod_highhigh_7 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_7
+```
+
+
+```{r, solution_06b_h, eval=FALSE}
+### degree 8
+set.seed(2001)
+mod_highhigh_8 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_8
+```
+
+
+```{r, solution_06b_i, eval=FALSE}
+### degree 9
+set.seed(2001)
+mod_highhigh_9 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9),
+                       data = df_high_high,
+                       method = "lm",
+                       metric = my_metric,
+                       trControl = my_ctrl)
+
+mod_highhigh_9
+```
+
+### 6c)
+
+The code chunk below compiles all of the resampling results together for the models associated with the high sample size and high noise level data.  
+
+```{r, assemble_resampling_highhigh, eval=FALSE}
+highhigh_results = resamples(list(fit_01 = mod_highhigh_1,
+                                  fit_02 = mod_highhigh_2,
+                                  fit_03 = mod_highhigh_3,
+                                  fit_04 = mod_highhigh_4,
+                                  fit_05 = mod_highhigh_5,
+                                  fit_06 = mod_highhigh_6,
+                                  fit_07 = mod_highhigh_7,
+                                  fit_08 = mod_highhigh_8,
+                                  fit_09 = mod_highhigh_9))
+```
+
+As with the `lowhigh_results` object, you can now visualize summary statistics associated with the resampling results and identify the best performing models.  
+
+**You must display the summary table using the `summary()` function for the resampling results and visualize the resampling results using the `dotplot()` function. In both the `summary()` and `dotplot()` functions, you must specify the `metric` argument to be primary performance metric that you specified previously.**  
+
+**Which model is the best according to the resampling results?**  
+
+#### SOLUTION
+
+```{r, solution_06c_a}
+### print the resampling summary for the performance metric
+# Avoided writing functions in R as we were asked to do the tedious way.
+# But this could be written ina better way
+
+set.seed(2001)
+mod_highhigh_1 <- train(y ~ x, data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_2 <- train(y ~ x + I(x^2), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_3 <- train(y ~ x + I(x^2) + I(x^3), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_4 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_5 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_6 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_7 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_8 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+mod_highhigh_9 <- train(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9), data = df_high_high, method = "lm", metric = my_metric, trControl = my_ctrl)
+
+
+highhigh_results = resamples(list(fit_01 = mod_highhigh_1,
+                                  fit_02 = mod_highhigh_2,
+                                  fit_03 = mod_highhigh_3,
+                                  fit_04 = mod_highhigh_4,
+                                  fit_05 = mod_highhigh_5,
+                                  fit_06 = mod_highhigh_6,
+                                  fit_07 = mod_highhigh_7,
+                                  fit_08 = mod_highhigh_8,
+                                  fit_09 = mod_highhigh_9))
+
+summary(highhigh_results, metric = "RMSE")
+```
+
+
+```{r, solution_06c_b}
+### visualize the dotplot for the performance metric
+dotplot(highhigh_results, metric = "RMSE")
+```
+
+Which model is the best? 
+mod_highhigh_5 is the best according to dotplot and summary. 
+
+### 6d)
+
+The `df_low_high` and `df_high_high` data have the same noise level, but different sample sizes.  
+
+**Did the resampling scheme identify the same model as the best model for the two sample size cases? Did the models identified to be poor for the low sample size case remain poor for the high sample size case?**  
+
+#### SOLUTION
+
+What do you think?  
+
+Did the resampling scheme identify the same model as the best model for the two sample size cases
+No.
+In the case of df_low_high and df_high_high, which have the same noise level but different sample sizes, the resampling scheme did not identify the same model as the best for both cases. For df_low_high, the cubic polynomial was identified as the best model, while for df_high_high, the 5th degree polynomial was deemed the best. This suggests that the sample size indeed plays a crucial role in model selection.
+The higher degree polynomial (5th) chosen for the larger sample size (df_high_high) might be an indication of a more complex model capturing intricate patterns. However, this could also lead to overfitting, especially if the model is not truly reflective of the underlying data generation process.
+
+Did the models identified to be poor for the low sample size case remain poor for the high sample size case?**  
+Yes.
+Even though the best models differed between df_low_high and df_high_high, the models identified as poor for the low sample size case (df_low_high) generally remained poor for the high sample size case (df_high_high). Specifically, the 9th degree polynomial was identified as poor for both datasets.
+
+### 6e)
+
+You have executed a model selection task under varying levels of noise and sample sizes. Your goal was to select the best model from a candidate set of varying levels of complexity.  
+
+**What do you think the impact is between sample size and noise level on the ability to identify complex behavior?**  
+
+#### SOLUTION
+
+What do you think?  
+Sample Size:
+
+Larger Sample Size:
+A larger sample size generally provides more data points for the model to learn from, allowing it to capture complex patterns and behaviors. Increased statistical power often enables the identification of subtle and intricate relationships in the data.
+
+Smaller Sample Size:
+A simpler model might be preferred to avoid overfitting in situations with limited data. The model might struggle to capture complex underlying patterns, leading to underfitting.
+
+Noise Level:
+
+Low Noise:
+A lower level of noise allows the model to focus on genuine patterns in the data. It is easier to identify and trust complex behavior when the signal-to-noise ratio is high.
+
+High Noise:
+Simpler models are often favored in the presence of high noise to avoid overfitting to random fluctuations.Identifying complex behavior becomes challenging as noise obscures the true underlying patterns.
+
+I learnt that the relationship between sample size and noise level is intricate, and an increase in sample size might necessitate a more complex model to capture the richness of the data. The model selection either chooses capturing complex behavior or  avoiding overfitting, especially when dealing with limited data.
