@@ -1,0 +1,1439 @@
+---
+title: "INFSCI 2595 Spring 2024 Homework: 03"
+subtitle: "Assigned January 24, 2024; Due: January 31, 2024"
+author: "Shusrita Venugopal"
+date: "Submission time: January 31, 2024 at 11:00PM EST"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Collaborators
+
+Include the names of your collaborators here.  
+
+## Overview
+
+This assignment is focused on binary classification performance metrics. You will calculate the Accuracy, the confusion matrix, and a simple ROC curve manually on a simple example. Afterwards, you will assess the performance of multiple binary classifiers using `caret` to manage the resampling process and the `yardstick` package to calculate several performance metrics in a more realistic application. You will use Accuracy, the ROC curve, and the ROC AUC to compare multiple models and select the best one. Lastly, you will compare the models using the calibration curve.  
+
+**IMPORTANT**: The RMarkdown assumes you have downloaded the 3 data sets (CSV files) to the same directory you saved the template Rmarkdown file. If you do not have the 3 CSV files in the correct location, the data will not be loaded correctly.  
+
+### IMPORTANT!!!
+
+Certain code chunks are created for you. Each code chunk has `eval=TRUE` set in the chunk options. You **MUST** change it to be `eval=TRUE` in order for the code chunks to be evaluated when rendering the document.  
+
+You are free to add more code chunks if you would like.  
+
+## Load packages
+
+The tidyverse is loaded for you in the code chunk below.  
+
+```{r, load_tidyverse_pkg}
+library(tidyverse)
+```
+
+The other packages, `caret` and `yardstick`, will be loaded as needed later in the assignment. 
+
+## Problem 01
+
+The code chunk below reads in a data set that you will work with in Problems 1, 2 and 3. A glimpse is printed for you which shows three variables, an input `x`, a model predicted event probability, `pred_prob`, and the observed output class, `obs_class`. A binary classifier has already been trained for you. That model's predicted probability (`pred_prob`) is provided with the observed binary outcome (`obs_class`). You will use this data set to get experience with binary classification performance metrics.  
+
+```{r, read_binary_class_data}
+example_data_path <- "hw03_example_binary_data.csv"
+
+model_pred_df <- readr::read_csv(example_data_path, col_names = TRUE)
+```
+
+```{r, glimpse_read_in_data}
+model_pred_df |> glimpse()
+```
+
+### 1a)
+
+**Pipe the `model_pred_df` data set into the `count()` function to display the number of unique values of the `obs_class` variable.**  
+
+#### SOLUTION
+
+```{r, solution_01a}
+### your code here
+model_pred_df %>% count(obs_class)
+```
+
+### 1b)
+
+You should see that one of the values of `obs_class` is the event of interest and is named `"event"`.  
+
+**Use the `mean()` function to determine the fraction (or proportion) of the observations that correspond to the event of interest. Is the data set a balanced data set?**  
+
+#### SOLUTION
+
+```{r, solution_01b}
+### your code here
+mean(model_pred_df$obs_class == "event")
+```
+
+Is the data set balanced?  
+Since the mean is closer to 0.5, I consider this to be balanced.
+
+### 1c)
+
+In lecture we discussed that regardless of the labels or classes associated with the binary response, we can encode the outcome as `y = 1` if the `"event"` is observed and `y = 0` if the `"non_event"` is observed. You will encode the output with this 0/1 encoding.  
+
+The `ifelse()` function can help you perform this operation. The `ifelse()` function is a one-line if-statement which operates similar to the IF function in Excel. The basic syntax is:  
+
+`ifelse(<conditional statement to check>, <value if TRUE>, <value if FALSE>)`  
+
+Thus, the user must specify a condition to check as the first argument to the `ifelse()` function. The second argument is the value to return if the conditional statement is TRUE, and the second argument is the value to return if the conditional statement is FALSE.  
+
+You can use the `ifelse()` statement within a `mutate()` call to create a new column in the `model_pred_df` data set.  
+
+The code chunk below provides an example using the first 10 rows from the `iris` data set which is loaded with base R. The `Sepal.Width` variable is compared to a value of 3.5. If `Sepal.Width` is greater than 3.5 the new variable, `width_factor`, is set equal to `"greater than"`. However, if it is less than 3.5 the new variable is set to `"less than"`.  
+
+```{r, show_ifelse_iris}
+iris %>% 
+  slice(1:10) %>% 
+  select(starts_with("Sepal"), Species) %>% 
+  mutate(width_factor = ifelse(Sepal.Width > 3.5, 
+                               "greater than", 
+                               "less than"))
+```
+
+You will use the `ifelse()` function combined with `mutate()` to add a column to the `model_pred_df` tibble.  
+
+**Pipe `model_pred_df` into a `mutate()` call in order to create a new column (variable) named `y`. The new variable, `y`, will equal the result of the `ifelse()` function. The conditional statement will be if `obs_class` is equal to the `"event"`. If TRUE assign `y` to equal the value 1. If FALSE, assign `y` to equal the value 0. Assign the result to the variable `model_pred_df` which overwrites the existing value.**  
+
+#### SOLUTION
+
+```{r, solution_01c, eval=TRUE}
+model_pred_df <- model_pred_df %>% 
+  mutate(y = ifelse(obs_class == "event", 1, 0))
+```
+
+### 1d)
+
+You will now visualize the observed binary outcome as encoded by 0 and 1.  
+
+**Pipe the `model_pred_df` object into `ggplot()`. Create a scatter plot between the encoded output `y` and the input `x`. Set the marker `size` to be 3.5 and the transparency (`alpha`) to be 0.5.**  
+
+#### SOLUTION
+
+```{r, solution_01d}
+### your code here
+library(ggplot2)
+
+model_pred_df %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point(size = 3.5, alpha = 0.5) +
+  labs(title = "Scatter Plot of Encoded Outcome",
+       x = "Input (x)",
+       y = "Encoded Outcome (y)")
+```
+
+### 1e)
+
+The `model_pred_df` includes a column (variable) for a model predicted event probability.  
+
+**Use the `summary()` function to confirm that the lower an upper bounds on `pred_prob` are in fact between 0 and 1.**  
+
+#### SOLUTION
+
+```{r, solution_01e}
+### your code here
+summary(model_pred_df$pred_prob)
+```
+
+### 1f)
+
+With the binary outcome encoded as 0/1 within the `y` variable we can overlay the model predicted probability on top of the observed binary response.  
+
+**Use a `geom_line()` to plot the predicted event probability, `pred_prob`, with respect to the input `x`. Set the line `color` to be `"red"` within the `geom_line()` call. Overlay the binary response with the encoded response `y` as a scatter plot with `geom_point()`. Use the same marker size and transparency that you used for Problem 1d).**  
+
+#### SOLUTION
+
+```{r, solution_03f}
+### your code here
+model_pred_df %>%
+  ggplot(aes(x = x)) +
+  geom_line(aes(y = pred_prob), color = "red") +
+  geom_point(aes(y = y), size = 3.5, alpha = 0.5) +
+  labs(title = "Model Predicted Probability vs. Observed Binary Response",
+       x = "Input Variable (x)",
+       y = "Probability / Binary Response")
+```
+
+
+### 1g)
+
+**Does the observed binary response "follow" the model predicted probability?**  
+
+#### SOLUTION
+
+What do you think? 
+The observed binary response follows the model predicted probability.
+
+## Problem 02
+
+As you can see from the `model_pred_df` tibble, we have a model predicted probability but we do not have a corresponding classification.  
+
+### 2a)
+
+In order to classify our predictions we must compare the predicted probability against a threshold. You will use `ifelse()` combined with `mutate()` to create a new variable `pred_class`. If the predicted probability, `pred_prob`, is greater than the threshold set the predicted class equal to `"event"`. If the predicted probability, `pred_prob`, is less than the threshold set the predicted class equal to the `"non_event"`.  
+
+**Use a threshold value of 0.5 and create the new variable `pred_class` such that the classification is `"event"` if the predicted probability is greater than the threshold and `"non_event"` if the predicted probability is less than the threshold. Assign the result to the new object `model_class_0.5`.**  
+
+#### SOLUTION
+
+```{r, solution_02a, eval=TRUE}
+model_class_0.5 <- model_pred_df %>%
+  mutate(pred_class = ifelse(pred_prob > 0.5, "event", "non_event"))
+model_class_0.5
+```
+
+### 2b)
+
+You should now have a tibble that has a model classification and the observed binary outcome.  
+
+**Calculate the Accuracy, the fraction of observations where the model classification is correct.**  
+
+#### SOLUTION
+
+```{r, solution_02b}
+### your code here
+confusion_counts_0.5 <- model_class_0.5 %>% count(pred_class, obs_class)
+
+TP_count_0.5 <- confusion_counts_0.5 %>% filter(pred_class == "event", obs_class == "event") %>% pull(n)
+
+# Extract counts for False-Positives
+FP_count_0.5 <- confusion_counts_0.5 %>% filter(pred_class == "event", obs_class == "non_event") %>% pull(n)
+
+FN_count_0.5 <- confusion_counts_0.5 %>% filter(pred_class == "non_event", obs_class == "event") %>% pull(n)
+
+# Extract counts for True-Negatives
+TN_count_0.5 <- confusion_counts_0.5 %>% filter(pred_class == "non_event", obs_class == "non_event") %>% pull(n)
+
+accuracy_0.5 = (TP_count_0.5 + TN_count_0.5) / (TP_count_0.5 + TN_count_0.5 + FP_count_0.5 + FN_count_0.5)
+cat("Accuracy of the model classifications based on the 0.7 threshold:", accuracy_0.5, "\n")
+
+```
+
+### 2c)
+
+We discussed in lecture how there are additional metrics we can consider with binary classification. Specifically, we can consider how a classification is correct, and how a classification is incorrect. A simple way to determine the counts per combination of `pred_class` and `obs_class` is with the `count()` function.  
+
+**Pipe `model_class_0.5` into `count()` with `pred_class` as the first argument and `obs_class` as the second argument. You should see 4 combinations and the number of rows in the data set associated with each combination (the number or count is given by the `n` variable).**  
+
+**How many observations are associated with False-Positives? How many observations are associated with True-Negatives?**  
+
+#### SOLUTION
+
+```{r, solution_024c}
+### your code here
+
+cat("False Positive:", FP_count_0.5, "\n")
+cat("True Negative:", TN_count_0.5, "\n")
+
+```
+
+your response here. 
+
+6 False positives
+53 True Negatives
+
+### 2d)
+
+**You will now calculate the Sensitivity and False Positive Rate (FPR) associated with the model predicted classifications based on a threshold of 0.5. This question is left open ended. It is your choice as to how you calculate the Sensitivity and FPR. However, you CANNOT use an existing function from a library which performs the calculations automatically for you. You are permitted to use `dplyr` data manipulation functions. Include as many code chunks as you feel are necessary.**  
+
+#### SOLUTION
+
+```{r, solution_02d}
+### add more code chunks if you need to
+
+### sensitivity or true positive rate is given by
+sensitivity_0.5 = TP_count_0.5 / (TP_count_0.5 + FN_count_0.5)
+
+### specificity is given by
+specificity_0.5 = TN_count_0.5 / (TN_count_0.5 + FP_count_0.5)
+
+### False-positive rate (FPR) 
+FPR_0.5 = 1-specificity_0.5
+
+# Print the results
+cat("Sensitivity for 0.5 Threshold:", sensitivity_0.5, "\n")
+cat("False Positive Rate (FPR) for 0.5 Threshold:", FPR_0.5, "\n")
+```
+
+### 2e)
+
+We also discussed the ROC curve in addition to the confusion matrix. You will not have to calculate the ROC curve for a large number of threshold values. You will go through several calculations in order to demonstrate an understanding of the steps necessary to create an ROC curve.  
+
+The first action you must perform is to make classifications based on a different threshold compared to the default value of 0.5, which we used previously.  
+
+**Pipe the `model_pred_df` tibble into a `mutate()` function again, but this time determine the classifications based on a threshold value of 0.7 instead of 0.5. Assign the result to the object `model_class_0.7`.**  
+
+#### SOLUTION
+
+```{r, solution_02e, eval=TRUE}
+model_class_0.7 <- model_pred_df %>%
+  mutate(pred_class = ifelse(pred_prob > 0.7, "event", "non_event"))
+model_class_0.7
+```
+
+### 2f)
+
+**Perform the same action as in Problem 2e), but this time for a threshold value of 0.3. Assign the result to the object `model_class_0.3`.**  
+
+#### SOLUTION
+
+```{r, solution_02f, eval=TRUE}
+model_class_0.3 <- model_pred_df %>%
+  mutate(pred_class = ifelse(pred_prob > 0.3, "event", "non_event"))
+model_class_0.3
+```
+
+## Problem 3
+
+You will continue with the binary classification application in this problem.  
+
+### 3a)
+
+**Calculate the Accuracy of the model classifications based on the 0.7 threshold. You CANNOT use an existing function that calculates Accuracy automatically for you. You are permitted to use `dplyr` data manipulation functions.**  
+
+#### SOLUTION
+
+```{r, solution_03a}
+### your code here
+confusion_counts_0.7 <- model_class_0.7 %>% count(pred_class, obs_class)
+
+TP_count_0.7 <- confusion_counts_0.7 %>% filter(pred_class == "event", obs_class == "event") %>% pull(n)
+
+# Extract counts for False-Positives
+FP_count_0.7 <- confusion_counts_0.7 %>% filter(pred_class == "event", obs_class == "non_event") %>% pull(n)
+
+FN_count_0.7 <- confusion_counts_0.7 %>% filter(pred_class == "non_event", obs_class == "event") %>% pull(n)
+
+# Extract counts for True-Negatives
+TN_count_0.7 <- confusion_counts_0.7 %>% filter(pred_class == "non_event", obs_class == "non_event") %>% pull(n)
+
+cat("True Positive:", TP_count_0.7, "\n")
+cat("False Positive:", FP_count_0.7, "\n")
+cat("False Negative:", FN_count_0.7, "\n")
+cat("True Negativr:", TN_count_0.7, "\n")
+
+accuracy_0.7 = (TP_count_0.7 + TN_count_0.7) / (TP_count_0.7 + TN_count_0.7 + FP_count_0.7 + FN_count_0.7)
+
+cat("Accuracy of the model classifications based on the 0.7 threshold:", accuracy_0.7, "\n")
+```
+
+### 3b)
+
+**Calculate the Sensitivity and Specificity of the model classifications based on the 0.7 threshold. Again you can calculate these however you wish. Except you cannot use a model function library that performs the calculations automatically for you.**  
+
+#### SOLUTION
+
+```{r, solution_03b}
+### add more code chunks if you need to
+### sensitivity or true positive rate is given by
+sensitivity_0.7 = TP_count_0.7 / (TP_count_0.7 + FN_count_0.7)
+
+### specificity is given by
+specificity_0.7 = TN_count_0.7 / (TN_count_0.7 + FP_count_0.7)
+
+### False-positive rate (FPR) 
+FPR_0.7 = 1-specificity_0.7
+
+# Print the results
+cat("Sensitivity for 0.7 Threshold:", sensitivity_0.7, "\n")
+cat("False Positive Rate (FPR) for 0.7 Threshold:", FPR_0.7, "\n")
+```
+
+### 3c)
+
+**Calculate the Accuracy of the model classifications based on the 0.3 threshold.**  
+
+#### SOLUTION
+
+```{r, solution_03c}
+### your code here
+confusion_counts_0.3 <- model_class_0.3 %>% count(pred_class, obs_class)
+
+TP_count_0.3 <- confusion_counts_0.3 %>% filter(pred_class == "event", obs_class == "event") %>% pull(n)
+
+# Extract counts for False-Positives
+FP_count_0.3 <- confusion_counts_0.3 %>% filter(pred_class == "event", obs_class == "non_event") %>% pull(n)
+
+FN_count_0.3 <- confusion_counts_0.3 %>% filter(pred_class == "non_event", obs_class == "event") %>% pull(n)
+
+# Extract counts for True-Negatives
+TN_count_0.3 <- confusion_counts_0.3 %>% filter(pred_class == "non_event", obs_class == "non_event") %>% pull(n)
+
+cat("True Positive:", TP_count_0.3, "\n")
+cat("False Positive:", FP_count_0.3, "\n")
+cat("False Negative:", FN_count_0.3, "\n")
+cat("True Negativr:", TN_count_0.3, "\n")
+
+accuracy_0.3 = (TP_count_0.3 + TN_count_0.3) / (TP_count_0.3 + TN_count_0.3 + FP_count_0.3 + FN_count_0.3)
+
+cat("Accuracy of the model classifications based on the 0.3 threshold:", accuracy_0.3, "\n")
+```
+
+### 3d)
+
+**Calculate the Sensitivity and Specificity of the model classifications based on the 0.3 threshold. Again you can calculate these however you wish. Except you cannot use a model function library that performs the calculations automatically for you.**  
+
+#### SOLUTION
+
+```{r, solution_03d}
+### add more code chunks if you need to
+### add more code chunks if you need to
+### sensitivity or true positive rate is given by
+sensitivity_0.3 = TP_count_0.3 / (TP_count_0.3 + FN_count_0.3)
+
+### specificity is given by
+specificity_0.3 = TN_count_0.3 / (TN_count_0.3 + FP_count_0.3)
+
+### False-positive rate (FPR) 
+FPR_0.3 = 1-specificity_0.3
+
+# Print the results
+cat("Sensitivity for 0.3 Threshold:", sensitivity_0.3, "\n")
+cat("False Positive Rate (FPR) for 0.3 Threshold:", FPR_0.3, "\n")
+```
+
+### 3e)
+
+You have calculated the Sensitivity and FPR at three different threshold values. You will plot your simple 3 point ROC curve and include a "45-degree" line as reference.  
+
+**Use `ggplot2` to plot your simple 3 point ROC curve. You must compile the necessary values into a data.frame or tibble. You must use `geom_point()` to show the markers, `geom_abline()` with `slope=1` and `intercept=0` to show the reference "45-degree" line. And you must use  `coord_equal(xlim=c(0,1), ylim=c(0,1))` with your graphic. This way both axes are plotted between 0 and 1 and the axes are equal.**  
+
+#### SOLUTION
+
+```{r, solution_03e}
+### you may add more code chunks if you need to
+
+# Create a data.frame with Sensitivity and FPR values at three different thresholds
+roc_data <- data.frame(
+  Threshold = c(0.3, 0.5, 0.7),  # Replace with your actual threshold values
+  Sensitivity = c(sensitivity_0.3, sensitivity_0.5, sensitivity_0.7),
+  FPR = c(FPR_0.3, FPR_0.5, FPR_0.7)
+)
+
+# Plot the ROC curve
+ggplot(roc_data, aes(x = FPR, y = Sensitivity)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  labs(title = "ROC Curve",
+       x = "False Positive Rate (FPR)",
+       y = "Sensitivity") +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1))
+
+```
+
+
+## Problem 04
+
+You have practiced calculating several important binary classification performance metrics. Let's use those metrics in a more realistic application to compare multiple models. The code chunk below reads in data that you will use for model training. The data consists of 4 inputs, `x1` through `x4`, and a binary outcome, `y`. The binary outcome is converted to a factor for you with the appropriate level order for modeling with `caret`.  
+
+```{r, read_train_data_set}
+train_data_path <- 'hw03_train_data.csv'
+
+df <- readr::read_csv(train_data_path, col_names = TRUE)
+df <- df %>% 
+  mutate(y = factor(y, levels = c("event", "non_event")))
+```
+
+A glimpse of the data are provided to you below.  
+
+```{r, show_train_data_glimpse}
+df %>% glimpse()
+```
+
+
+### 4a)
+
+**Are the levels of the binary outcome, `y`, balanced?**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary. 
+```{r, balanced} 
+### Add as many code chunks as you feel are necessary. 
+table(df$y)
+
+# Using mean
+mean(df$y == "event")
+```
+The levels of the binary outcome y are not perfectly balanced because the mean is 0.48, indicating a slight imbalance. Typically, a balanced dataset would have a mean of 0.5 for a binary outcome. However, with a mean close to 0.5, the dataset can still be considered reasonably balanced.
+
+### 4b)
+
+Although it is best to explore the data in greater detail when we start a data analysis project, we will jump straight to modeling in this assignment.  
+
+Download and install `yardstick` if you have not done so already.  
+
+**Load in the `caret` package and the `yardstick` packages below. Use a separate code chunk for each package.**  
+
+#### SOLUTION
+
+Add the code chunks here.  
+```{r, loading_caret}
+# Load the caret package
+library(caret)
+```
+
+```{r, loading_yardstick}
+# Load the yardstick package
+library(yardstick)
+```
+### 4c)
+
+Just as with regression problems, we must first specify the resampling scheme and primary performance metric when we use `caret` for classification problems. All students will use the same primary performance metric in this assignment. We will begin by focusing on the Accuracy. That said, you are free to decide the kind of resampling scheme you wish to use.  
+
+The resampling scheme is controlled by the `trainControl()` function, just as it was with regression problems. You must specify the arguments to the `trainControl()` function accordingly in this problem.  
+
+
+**Specify the resampling scheme you wish to use and assign the result to the `ctrl_acc` object. Specify the primary performance metric to be Accuracy by assigning `'Accuracy'` to the `metric_acc` argument.**  
+
+```{r, solution_04c, eval=TRUE}
+ctrl_acc <- trainControl(method = "cv", number = 10, classProbs = TRUE)
+
+metric_acc <- "Accuracy"
+```
+
+
+### 4d)
+
+You are going to train 8 binary classifiers in this problem. The different models will use different features derived from the 4 inputs. The 8 models must have the following features:  
+
+* model 1: linear additive features all inputs  
+* model 2: linear features and quadratic features all inputs  
+* model 3: linear features and quadratic features just inputs 1 and 2  
+* model 4: linear features and quadratic features just inputs 1 and 3  
+* model 5: linear features and quadratic features just inputs 1 and 4  
+* model 6: linear features and quadratic features just inputs 2 and 3  
+* model 7: linear features and quadratic features just inputs 2 and 4  
+* model 8: linear features and quadratic features just inputs 3 and 4  
+
+Model 1 is the conventional "linear method" for binary classification. All other models have linear and quadratic terms to allow capturing non-linear relationships with the event probability (just how that works will be discussed later in the semester). Model 2 creates the features from all four inputs. The remaining 6 models use the combinations of just two of the inputs. This scheme is trying to identify the best possible set of inputs to model the binary outcome in a step-wise like fashion. This is **not** an efficient way to identify the best set of features to use. Later in the semester, we will learn a much more efficient *modeling approach* that performs this operation for us!    
+
+**You must complete the 8 code chunks below. Use the formula interface to create the features in the model, analogous to the approach used in the previous assignment. You must specify the `method` argument in the `train()` function to be `"glm"`. You must specify the remaining arguments to `train()` accordingly.**  
+
+**The variable names and comments within the code chunks specify which model you are working with.**  
+
+*NOTE*: The models are trained in separate code chunks that way you can run each model separately from the others.  
+
+#### SOLUTION
+
+```{r, solution_04d_01, eval=TRUE}
+### model 1
+set.seed(2021)
+mod_1_acc <- train(y ~ ., 
+  data = df, 
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+```{r, solution_04d_02, eval=TRUE}
+### model 2
+set.seed(2021)
+mod_2_acc <- train(y ~ . + I(x1^2) + I(x2^2) + I(x3^2) + I(x4^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+```{r, solution_04d_03, eval=TRUE}
+### model 3
+set.seed(2021)
+mod_3_acc <- train(y ~ . + I(x1^2) + I(x2^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+```{r, solution_04d_04, eval=TRUE}
+### model 4
+set.seed(2021)
+mod_4_acc <- train(y ~ . + I(x1^2) + I(x3^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+```{r, solution_04d_05, eval=TRUE}
+### model 5
+set.seed(2021)
+mod_5_acc <- train( y ~ . + I(x1^2) + I(x4^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+```{r, solution_04d_06, eval=TRUE}
+### model 6
+set.seed(2021)
+mod_6_acc <- train(y ~ . + I(x2^2) + I(x3^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+```{r, solution_04d_07, eval=TRUE}
+### model 7
+set.seed(2021)
+mod_7_acc <- train(y ~ . + I(x2^2) + I(x4^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+```{r, solution_04d_08, eval=TRUE}
+### model 8
+set.seed(2021)
+mod_8_acc <- train(y ~ . + I(x3^2) + I(x4^2),
+  data = df,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl_acc,
+  metric = metric_acc)
+```
+
+
+### 4e)
+
+You will now compile all resample results together and compare the models based on their Accuracy.  
+
+**Complete the first code chunk below which assigns the models to the appropriate field within the `resamples()` function.**  
+
+**Then use the `summary()` function to summarize the Accuracy across the resamples and visualize the resample averaged performance with the `dotplot()` function from `caret`. In the function calls to both `summary()` and `dotplot()`, set the `metric` argument equal to `'Accuracy'`.**  
+
+**Which model is the best based on Accuracy? Are you confident it's the best?**  
+
+*HINT*: The field names within the list contained in the `resamples()` call correspond to the model object you should use.  
+
+#### SOLUTION
+
+```{r, solution_04e_01, eval=TRUE}
+acc_results <- resamples(list(mod_1 = mod_1_acc,
+                              mod_2 = mod_2_acc,
+                              mod_3 = mod_3_acc,
+                              mod_4 = mod_4_acc,
+                              mod_5 = mod_5_acc,
+                              mod_6 = mod_6_acc,
+                              mod_7 = mod_7_acc,
+                              mod_8 = mod_8_acc))
+```
+
+
+Summarize the results across the resamples.  
+Looks like 3rd model has highest mean in the summary,it gives the model with the highest average accuracy across resample.  
+
+```{r, solution_04e_02}
+### add your code here
+summary(acc_results, metric = "Accuracy")
+```
+
+
+Visualize the resample averaged Accuracy per model.  
+
+```{r, solution_04e_03}
+### add your code here
+dotplot(acc_results, metric = "Accuracy")
+```
+
+
+Which model is the best?  
+5rd model is the best because:
+1. has highest mean from the summary table.
+2. has max accuracy and is on top of the dotplot.
+
+### 4f)
+
+Next, you will consider how a model was correct and how a model was wrong via the confusion matrix. You are allowed to use the `confusionMatrix()` function from the `caret` package in this assignment to create the confusion matrix. A `caret` model object can be passed as the argument to the `confusionMatrix()` function. The function will then calculate the average confusion matrix across all resample test-sets. The resulting confusion matrix is displayed with percentages instead of counts, as shown in the lecture slides. The interpretations however are the same.  
+
+**Use the `confusionMatrix()` function to display the confusion matrix for the top two and worst two models according to Accuracy.**  
+
+**How do the False-Positive and False-Negative behavior compare between these four models?**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary.  
+```{r, confusion_matrix_top_model}
+# Get the confusion matrix for the top two models
+conf_matrix_mod_5 <- confusionMatrix(mod_5_acc, metric = "Accuracy")
+conf_matrix_mod_4 <- confusionMatrix(mod_4_acc, metric = "Accuracy")
+
+print("Confusion Matrix for mod_5:")
+print(conf_matrix_mod_5)
+
+print("\nConfusion Matrix for mod_4:")
+print(conf_matrix_mod_4)
+```
+
+```{r, confusion_matrix_top_models}
+# Get the confusion matrix for the bottom two models
+conf_matrix_mod_1 <- confusionMatrix(mod_1_acc, metric = "Accuracy")
+conf_matrix_mod_8 <- confusionMatrix(mod_8_acc, metric = "Accuracy")
+
+print("Confusion Matrix for mod_1:")
+print(conf_matrix_mod_1)
+
+print("\nConfusion Matrix for mod_8:")
+print(conf_matrix_mod_8)
+```
+## Problem 05
+
+Now that you have compared the models based on Accuracy, it is time to consider another performance metric. The Accuracy is calculated using a single threshold value. You will now examine the model performance across all possible thresholds by studying the ROC curve.  
+
+### 5a)
+
+You will ultimately visually compare the ROC curves for the different models. Unfortunately with `caret`, we need to make several changes to the `trainControl()` function in order to support such comparisons. The code chunk below is started for you by including the necessary arguments you will need to visualize the ROC curves later.  
+
+**You must complete the code chunk by specifying the same resampling scheme you used in Problem 4c). You must also specify the primary performance metric as `'ROC'`. That is how `caret` knows it must calculate the Area Under the Curve (AUC) for the ROC curve.**  
+
+#### SOLUTION
+
+```{r, solution_05a, eval=TRUE}
+ctrl_roc <- trainControl( method = "cv", number = 10,
+                         summaryFunction = twoClassSummary,
+                         classProbs = TRUE,
+                         savePredictions = TRUE)
+
+metric_roc <- "ROC"
+```
+
+### 5b)
+
+You will retrain the same set of 8 models that you trained in Problem 4d), but this time using the ROC AUC as the primary performance metric.  
+
+**Complete the code chunks below so that you train the 8 models again, but this time focusing on the ROC AUC. The object name and comments within the code chunks specify the model you should use.**  
+
+#### SOLUTION
+
+
+```{r, solution_05b_01, eval=TRUE}
+### model 1
+set.seed(2021)
+mod_1_roc <- train(y ~ x1 + x2 + x3 + x4, data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+```{r, solution_05b_02, eval=TRUE}
+### model 2
+set.seed(2021)
+mod_2_roc <- train(y ~ x1 + x2 + x3 + x4 + I(x1^2) + I(x2^2) + I(x3^2) + I(x4^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+```{r, solution_05b_03, eval=TRUE}
+### model 3
+set.seed(2021)
+mod_3_roc <- train(y ~ x1 + x2 + I(x1^2) + I(x2^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+```{r, solution_05b_04, eval=TRUE}
+### model 4
+set.seed(2021)
+mod_4_roc <- train(y ~ x1 + x3 + I(x1^2) + I(x3^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+```{r, solution_05b_05, eval=TRUE}
+### model 5
+set.seed(2021)
+mod_5_roc <- train(y ~ x1 + x4 + I(x1^2) + I(x4^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+```{r, solution_05b_06, eval=TRUE}
+### model 6
+set.seed(2021)
+mod_6_roc <- train(y ~ x2 + x3 + I(x2^2) + I(x3^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+```{r, solution_05b_07, eval=TRUE}
+### model 7
+set.seed(2021)
+mod_7_roc <- train(y ~ x2 + x4 + I(x2^2) + I(x4^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+```{r, solution_05b_08, eval=TRUE}
+### model 8
+set.seed(2021)
+mod_8_roc <- train(y ~ x3 + x4 + I(x3^2) + I(x4^2), data = df, method = "glm", family = "binomial", trControl = ctrl_roc, metric = "ROC")
+```
+
+
+### 5c)
+
+You will now compile all resample results together and compare the models based on their area under the ROC curve.  
+
+**Complete the first code chunk below which assigns the models to the appropriate field within the `resamples()` function.**  
+
+**Then use the `summary()` function to summarize the ROC AUC across the resamples and visualize the resample averaged performance with the `dotplot()` function from `caret`. In the function calls to both `summary()` and `dotplot()`, set the `metric` argument equal to `'ROC'`.**  
+
+**Which model is the best based on ROC AUC? Are you confident it's the best?**  
+
+*HINT*: The field names within the list contained in the `resamples()` call correspond to the model object you should use.  
+
+#### SOLUTION
+
+```{r, solution_05c_01, eval=TRUE}
+roc_results <- resamples(list(mod_1 = mod_1_roc,
+                              mod_2 = mod_2_roc,
+                              mod_3 = mod_3_roc,
+                              mod_4 = mod_4_roc,
+                              mod_5 = mod_5_roc,
+                              mod_6 = mod_6_roc,
+                              mod_7 = mod_7_roc,
+                              mod_8 = mod_8_roc))
+```
+
+
+Summarize the results across the resamples.  
+
+```{r, solution_05c_02}
+### add your code here
+summary(roc_results, metric = "ROC")
+```
+
+
+Visualize the resample averaged ROC AUC per model.  
+
+```{r, solution_05c_03}
+### add your code here
+dotplot(roc_results, metric = "ROC")
+```
+
+
+Which model is the best?  
+mod_3_roc is the best model accroding to the ROC dotplot. In ROC AUC, a higher value indicates better performance. Therefore, models with dots higher on the y-axis have higher ROC AUC values, and they are considered better in terms of discrimination ability.
+
+
+### 5d)
+
+By default, two other metrics are calculated by `caret` when we use the ROC AUC as the primary performance metric. Unlike ROC AUC, these two metrics are calculated with the default threshold. `caret` labels the the Sensitivity as the `Sens` metric and the Specificity as the `Spec` metric.  
+
+**Use the `summary()` and `dotplot()` functions again, but do not specify a metric. Just provide the `roc_results` as the input argument to the functions.**  
+
+**Which model has the highest True-Positive Rate at the default threshold? Which model has the lowest False-Positive Rate at the default threshold?**  
+
+#### SOLUTION
+
+Add as many code chunks and as much text as you feel are necessary.  
+```{r, roc_results}
+summary(roc_results)
+dotplot(roc_results)
+```
+According visual inspection of mean values from Sens, the model with the highest Sensitivity is mod_3_roc so it has highest True-Positive Rate. 
+
+According visual inspection of mean values from Spec, the model with the lowest specificity is mod_4_roc so it has lowest False-Positive Rate.
+
+### 5e)
+
+In order to visualize the ROC curve we need to understand how the resample hold-out test predictions are stored within the `caret` model objects. By default, hold-out test set predictions are not retained, in order to conserve memory. However, the `ctrl_roc` object set `savePredictions = TRUE` which overrides the default behavior and stores each resample test-set predictions.  
+
+The predictions are contained with the `$pred` field of the `caret` model object. The code chunk below displays the first few rows of the predictions for the `mod_1_roc` result for you. Note that the code chunk below is not evaluated by default. When you execute the code chunk below, you will see 7 columns. The column `obs` is the observed outcome and the column `event` is the predicted probability of the `event`. The `pred` column is the model classified outcome based on the default threshold of 50%. The `rowIndex` is the row from the original data set and serves to identify the row correctly. The `Resample` column tells us which resample fold the test point was associated with.  
+
+```{r, show_results_2e, eval=TRUE}
+mod_1_roc$pred %>% tibble::as_tibble()
+```
+
+The ROC curve is calculated by comparing the model predicted probability to all possible thresholds to create many different classifications. Those different classifications are used to calculate many different confusion matrices. Thus, the columns of primary interest in the prediction object displayed above are the `obs` and `event` columns.  
+
+You manually created 3 points on the ROC curve previously in this assignment. Do NOT worry, you do NOT need to repeat those actions here! Instead you will use the `roc_curve()` function from the `yardstick` package to create the ROC curve data for you. The `roc_curve()` function has three primary arguments. The first is a data object which contains the predictions in a "tidy" format. The second is the name of the column that corresponds to the observed outcome (the truth or reference). The third is the name of the column in the data set that corresponds to the model predicted event probability.  
+
+**Pipe the prediction data object for the `mod_1_roc` `caret` object to the `roc_curve()`. The `obs` column is the observed outcome and the `event` column is the model predicted event probability. Display the result to the screen to confirm the `roc_curve()` function worked. If it did the first few rows should correspond to very low threshold values.**  
+
+**Why does the `sensitivity` have values at or near 1 when the `.threshold` is so low?**
+
+#### SOLUTION
+
+```{r, solution_05e}
+### add your code here
+roc_curve_data <- mod_1_roc$pred %>% roc_curve(obs, event)
+roc_curve_data
+```
+
+
+What do you think?  
+the `sensitivity` have values at or near 1 when the `.threshold` is so low because the model predicts an event (positive outcome) even if the predicted probability of the event is very close to zero. In other words, the model becomes highly sensitive to detecting positive cases. The model is biased towards predicting positive outcomes, making it highly sensitive but potentially at the cost of increased false positives.
+
+### 5f)
+
+You will now visualize the ROC curve associated with `mod_1_roc`.  
+
+**Repeat the same steps you performed in 5e) above, except pipe the result to the `autoplot()` method.**  
+
+#### SOLUTION
+
+```{r, solution_05f}
+### add your code here
+roc_curve_data <- mod_1_roc$pred %>% roc_curve(obs, event) %>% autoplot()
+
+# Visualize the ROC curve
+roc_curve_data
+```
+
+
+### 5g)
+
+The ROC curve displayed in 5f) is the resample averaged ROC curve. You can examine the individual resample hold-out test set ROC curves by specifying a grouping structure with the `group_by()` function. This can help you get a sense of the variability in the ROC curve.  
+
+**Pipe the prediction object associated with `mod_1_roc` to the `group_by()` function where you specify the grouping variable to be `Resample`. Pipe the result to `roc_curve()` where you specify the same arguments as in the previous questions. Finally, pipe the result to `autoplot()`.**  
+
+#### SOLUTION
+
+```{r, solution_05g}
+### add your code here
+roc_curve_data_resample <- mod_1_roc$pred %>%
+  group_by(Resample) %>%
+  roc_curve(obs, event)  %>%
+  autoplot()
+
+roc_curve_data_resample
+```
+
+
+### 5h)
+
+A function is defined for you in the code chunk below. This function compiles all model results together to enable comparing their ROC curves.  
+
+```{r, make_roc_compile_function}
+compile_all_model_preds <- function(m1, m2, m3, m4, m5, m6, m7, m8)
+{
+  purrr::map2_dfr(list(m1, m2, m3, m4, m5, m6, m7, m8),
+                  as.character(seq_along(list(m1, m2, m3, m4, m5, m6, m7, m8))),
+                  function(ll, lm){
+                    ll$pred %>% tibble::as_tibble() %>% 
+                      select(obs, event, Resample) %>% 
+                      mutate(model_name = lm)
+                  })
+}
+```
+
+
+The code chunk below is also completed for you. It passes the `caret` model objects with the saved predictions to the `compile_all_model_preds()` function. The result is printed for you below so you can see the column names. Notice there is a new column `model_name` which stores the name of the model associated with the resample hold-out test set predictions. By default the code chunk below is not executed.  
+
+```{r, run_compiile_all_model_preds, eval=TRUE}
+all_model_preds <- compile_all_model_preds(mod_1_roc, mod_2_roc, mod_3_roc, 
+                                           mod_4_roc, mod_5_roc,
+                                           mod_6_roc, mod_7_roc, mod_8_roc)
+
+all_model_preds
+```
+
+You will now create a figure which displays the resample averaged ROC curve for each model.  
+
+**Pipe the `all_model_preds` object to `group_by()` and specify the grouping variable as `model_name`. Pipe the result to `roc_curve()` and specify the arguments accordingly. Pipe the result to `autoplot()` to generate the figure.**  
+
+**Which model is the best? Is the result consistent with the ROC AUC summary metrics you calculated previously? Which model is closest to a "completely ineffective model" and why is that so?**  
+
+#### SOLUTION
+
+```{r, solution_05h}
+### add your code here
+roc_curve_data_resample_averaged <- all_model_preds %>%
+  group_by(model_name) %>%
+  roc_curve(obs, event)  %>%
+  autoplot()
+
+roc_curve_data_resample_averaged
+```
+
+
+What do you think?  
+
+Which model is the best?
+mod_3 is still the best model. Because:
+mod_3 ROC curve is closer to the top-left corner, indicating higher TPR and lower FPR, and a larger AUC value for better overall discrimination performance.
+
+Is the result consistent with the ROC AUC summary metrics you calculated previously?
+Yes, it is consistent with the ROC AUC summary.
+
+Which model is closest to a "completely ineffective model" and why is that so?
+mod_8 is a model closest to completely ineffective model.
+Because:
+it is closest to the diagonal line.
+lowest Area Under the Curve (AUC) value, as a low AUC indicates poor discrimination ability.    
+
+
+## Problem 06
+
+The performance metrics you have focused on up to this point are point-wise comparison metrics which evaluate the classification performance of a model. As discussed in lecture, binary classifier performance can also be measured based on the **calibration** between the predicted probability and the observed event proportion. The performance is represented graphically via the **calibration curve** which visualizes the correlation between the model predictions and the observed proportion of the event.  
+
+Regardless of your rankings in the previous questions, you will compare the performance of model 1, model 3, and model 8 with the calibration curve. Although multiple functions exist to create the calibration curve, you **must** create the calibration curve manually in this problem. You are only allowed to use functions from the `dplyr` and `ggplot2` packages. You are **not** allowed to use any third party function to calculate the calibration curve in this problem.  
+
+In the two previous problems, you used resampling to assess model performance. We could create the calibration curve based on the resample fold test sets, but we will instead start simpler and use a dedicated hold-out set that is different from the training data. The hold-out set is read in for you in the code chunk below.  
+
+```{r, read_test_set}
+test_data_path <- 'hw03_test_data.csv'
+
+df_test <- readr::read_csv(test_data_path, col_names = TRUE)
+
+df_test <- df_test %>% 
+  mutate(y = factor(y, levels = c("event", "non_event")))
+```
+
+
+The code chunk below shows a glimpse of the test set, which demonstrates the test set has the same column names as the training set.  
+
+```{r, show_test_set_glimpse}
+df_test %>% glimpse()
+```
+
+
+### 6a)
+
+The first step to create the calibration curve requires making predictions. The `predict()` function for a `caret` trained object function has two main arguments. The first is the model object we will use to make predictions with and the second, `newdata`, is the data set to predict. The input columns must have the same names as the inputs to the training data that trained the model.  
+
+By default, a binary classifier will return the classifications assuming a 50% threshold. As discussed in lecture, the calibration curve does not work with classifications. Instead we need the predicted probability! We can override the default prediction behavior by setting additional arguments to the `predict()` function. Specifically, the `type` argument instructs the model to return a "type" of prediction. We want the predicted probability and so you must set `type = 'prob'` in the `predict()` function call.  
+
+**Predict the hold-out test set using model 1 and assign the result to the variable `pred_test_1`. Return the predicted probability by setting the `type` argument to `'prob'`.**  
+
+**Print the data type of the `pred_test_1` object to the screen and use the `head()` function to display the "top" of the object.**  
+
+*HINT*: It does not matter whether you use the model 1 assessed based on Accuracy or ROC in this problem.  
+
+#### SOLUTION
+
+```{r, solution_06a}
+### add more code chunks if you like
+pred_test_1 <- predict(mod_1_acc, newdata = df_test, type = 'prob') 
+head(pred_test_1)
+```
+
+### 6b)
+
+Your `pred_test_1` object should have 2 columns. The `event` column gives the predicted probability that `y == 'event'` and the `non_event` column stores the predicted probability that `y == 'non_event'`.  
+
+**What is the relationship between the values in the `event` column and the `non_event` column?**  
+
+#### SOLUTION
+
+What do you think?  
+The values in the event and non_event columns of the pred_test_1 object represent the predicted probabilities of the two classes ('event' and 'non_event') for each observation in the hold-out test set. The relationship between these values is complementary since they represent the probabilities of mutually exclusive outcomes. If the model predicts a high probability for 'event', it implies a low probability for 'non_event' and vice versa. In other words, for each observation, the sum of the probabilities in the event and non_event columns should be equal to 1.
+
+### 6c)
+
+The code chunk below binds the columns in `pred_test_1` with the `df_test` dataframe to create a new dataframe which includes the predicted probability of the event and the observed output, `y`, for the hold-out test set. **PLEASE NOTE**: the code chunk below is **NOT** evaluated by default. You must change the `eval` chunk option to make sure the code chunk is executed when you render the report.  
+
+```{r, assemble_pred_mod1_obj, eval=TRUE}
+test_df_1 <- df_test %>% bind_cols(pred_test_1)
+```
+
+As discussed in lecture, the calibration curve bins or lumps the predicted probability into uniformly spaced intervals. The empirical proportion of the event within each bin must be calculated. Thus, you need to convert the numeric predicted probability into a discrete or categorical variable.  
+
+A simple, yet effective, approach for categorizing a continuous variable is the `cut()` function. The cut function is demonstrated in the code chunk below. The variable `x` is a column within a tibble (a dataframe). The `x` variable consists of integers between 0 and 100. The `x` variable is "cut" or divided into bins with **break points** at values of 0, 10, 20, 30, etc. The break points are created using the `seq()` function from 0 to 100 *by* increments of 10. The tibble is piped to the `count()` function to count the number of rows associated with each unique value of the `x_bin`. Pay close attention to the displayed values of `x_bin`. The values of `x_bin` show the "cut" or "divided" intervals. 
+
+```{r, show_how_cut_works}
+tibble::tibble(x = 0:100) %>% 
+  mutate(x_bins = cut(x,
+                      breaks = seq(0, 100, by = 10),
+                      include.lowest = TRUE)) %>% 
+  count(x_bins)
+```
+
+
+You must use the `cut()` function to bin the predicted probability associated with model 1 into 10 bins. Think carefully about how to specify the `breaks` argument to `cut()` so that the probability is divided into 10 uniform intervals.  
+
+**Pipe `test_df_1` to `mutate()` and create a variable `pred_bin` by cutting the predicted probability into 10 uniform intervals. Assign the result to the `test_df_1_b` object.**  
+
+*HINT*: You should not pipe the result to `count()` as the previous code chunk did. The `count()` function was used to show the *levels* of the created discrete variable.  
+
+#### SOLUTION
+
+```{r, solution_06c}
+### your code here
+test_df_1 <- df_test %>% bind_cols(pred_test_1)
+
+test_df_1_b <- test_df_1 %>%
+  mutate(pred_bin = cut(event, breaks = seq(0, 1, length.out = 11), include.lowest = TRUE))
+
+head(test_df_1_b)
+```
+
+
+### 6d)
+
+**Use the `count()` function to count the number of rows associated with each unique value of `pred_bin` in the `test_df_1_b` object. Display the result to the screen. How many unique values are displayed?**  
+
+#### SOLUTION
+
+```{r, solution_06d}
+### your code here
+count_result <- test_df_1_b %>%
+  count(pred_bin)
+count_result
+```
+
+
+### 6e)
+
+Show the counts per bin again but this time visualize the counts with a bar chart.  
+
+**Create a bar chart with `ggplot2` for the counts associated with unique value of `pred_bin`.**  
+
+#### SOLUTION
+
+```{r, solution_06e}
+### your code here
+library(ggplot2)
+
+# Create a bar chart
+ggplot(count_result, aes(x = pred_bin, y = n)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Counts per Bin",
+       x = "Predicted Probability Bins",
+       y = "Count") +
+  theme_minimal()
+```
+
+### 6f)
+
+As shown in the lecture slides, we can create a stacked bar chart to get a rough idea about the number of events and non-events within each predicted probability bin. This is simple to do with `ggplot2` by using the `fill` aesthetic associated with the `geom_bar()` geometric object.  
+
+**Create a stacked bar chart with `ggplot2` where the `fill` aesthetic is mapped to the observed binary outcome. Overrid the default fill color scheme by including the `scale_color_brewer()` function after the `geom_bar()` layer. Set the `palette` argument in `scale_color_brewer()` to `'Set1'`.**  
+
+**Do any bins consist of only events? Do any bins consist of only non-events?**  
+
+*HINT*: Which variable in the `test_df_1` tibble corresponds to the observed outcome?  
+
+#### SOLUTION
+
+What do you think?  
+
+```{r, solution_06f}
+### your code here
+ggplot(test_df_1_b, aes(x = pred_bin, fill = y)) +
+  geom_bar(position = "stack") +
+  scale_fill_brewer(palette = 'Set1') +
+  labs(title = "Stacked Bar Chart of Observed Outcome by Predicted Probability Bins",
+       x = "Predicted Probability Bins",
+       y = "Count") 
+```
+Do any bins consist of only events? Do any bins consist of only non-events?
+yes, (0.9, 1] bin contains only event.
+No, There is no bin that contains only non-events.
+
+### 6g)
+
+Instead of showing the counts within each bin, let's change the bar chart so the maximum height is 1. The stacked bar chart will therefore show the proportion of events and non-events within each predicted probability bin.  
+
+**Recreate the stacked bar chart from the previous problem, but this time set the `position` argument to `'fill'` within the `geom_bar()` layer. The `position` argument should be specified outside the `aes()` function with `geom_bar()`. You must continue to map the `fill` aesthetic to the observed outcome.**  
+
+**Are the empirical proptions of the event consistent with the predicted probability for model 1?**  
+
+*HINT*: Pay close attention to the bar chart colors!  
+
+#### SOLUTION
+
+What do you think?  
+
+```{r, solution_06g}
+### your code here
+ggplot(test_df_1_b, aes(x = pred_bin, fill = y)) +
+  geom_bar(position = "fill") +
+  scale_fill_brewer(palette = 'Set1') +
+  labs(title = "Stacked Bar Chart of Observed Outcome by Predicted Probability Bins",
+       x = "Predicted Probability Bins",
+       y = "Proportion") +
+  theme_minimal()
+```
+Are the empirical proptions of the event consistent with the predicted probability for model 1?
+Yes, the predicted probability from model 1 aligns well with the observed outcome. 
+Bins with higher predicted probabilities should have a higher proportion of events. 
+
+## Problem 07
+
+The bar chart visualized in Problem 06 is the calibration curve for model 1, but that is not how calibration curves are typically displayed. As shown in lecture, calibration curves are visualized as scatter plots with lines connecting the markers. The previous problem was used to demonstrate the proportion of the event per bin. In this problem, you will calculate the proportion of the event manually in each bin.  
+
+This problem is open ended. You are free to calculate the event proportions however you want, as long as you do **NOT** use existing calibration curve functions. You are only allowed to use functions within `dplyr` and `ggplot2` in this problem.  
+
+### 7a)
+
+**Calculate the empirical proportion of events within each predicted probability bin associated with model 1. Although you are free to perform the calculations however you like, the results should be stored in a tibble (dataframe) named `my_calcurve_1` object. Your object should have columns for the `pred_bin`, the event proportion in the bin named `prop_event`, and the midpoint of the bin named `mid_bin`. Your `my_calcurve_1` object can have other columns, but those three columns are required.**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary.  
+```{r, 7a}
+library(dplyr)
+my_calcurve_1 <- test_df_1_b |>
+  group_by(pred_bin) |>
+  summarize(min_prob = min(event),
+  max_prob = max(event),
+  mid_bin = 0.5*(min_prob + max_prob),
+  prop_event = sum(y == "event") / n())
+            
+my_calcurve_1     
+```
+
+### 7b)
+
+You will now create the calibration curve associated with model 1's predictions on the hold-out test set! You must use the `my_calcurve_1` object created in Problem 7a).  
+
+**Pipe the `my_calcurve_1` object to `ggplot()` and map `mid_bin` and `prop_event` to the `x` and `y` aesthetics, respectively. Include `geom_line()` and `geom_point()` layers and a `geom_abline()` layer. Set the `geom_abline()` arguments as `slope=1`, `intercept=0`, `color='grey'`, and `linetype='dashed'`. Include `coord_equal()` with `xlim = c(0,1)` and `ylim = c(0,1)`.**  
+
+**Is the calibration curve consistent with your stacked filled barchart created previously? Pay close attention to the colors in the bar chart when comparing them!**  
+
+#### SOLUTION
+
+What do you think?  
+
+```{r, solution_07b}
+### your code here
+ggplot(my_calcurve_1, aes(x = mid_bin, y = prop_event)) +
+  geom_line() +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = 'grey', linetype = 'dashed') +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1))
+```
+The calibration curve represents the relationship between predicted probabilities and the actual observed outcomes. the calibration curve exhibits a similar pattern to the stacked filled bar chart, it suggests that the model's predicted probabilities are well-calibrated and reflective of the true event proportions.
+
+### 7c)
+
+Now it's time to create the necessary objects associated with model 3 and model 8. As we started with model 1, we must predict the hold-out test set and return the predicted event probabilities.  
+
+**Predict the hold-out test set using model 3 and model 8. Assign the results to the variables `pred_test_3` and `pred_test_8` for model 3 and model 8, respectively.**  
+
+#### SOLUTION
+
+```{r, solution_07c}
+### add more code chunks if you like
+pred_test_3 <- predict(mod_3_acc, newdata = df_test, type = 'prob')
+pred_test_8 <- predict(mod_8_acc, newdata = df_test, type = 'prob')
+```
+
+
+### 7d)
+
+The code chunk below is completed for you. The model 3 and model 8 predictions are combined with the hold-out test set data so you have the predicted probabilities and observed outcome within a tibble (dataframe). **PLEASE NOTE**: the code chunk below is **NOT** evaluated by default. You must change the `eval` chunk option to make sure the code chunk is executed when you render the report.  
+
+
+```{r, make_test_dfs_for_3_8, eval=TRUE}
+test_df_3 <- df_test %>% bind_cols(pred_test_3)
+
+test_df_8 <- df_test %>% bind_cols(pred_test_8)
+```
+
+
+**You must create the categorical predicted probability bins for model 3 and model 8 using the `cut()` function. Assign the results to the `test_df_3_b` and `test_df_8_b` objects for model 3 and model 8, respectively.**  
+
+#### SOLUTION
+
+```{r, solution_04d}
+### add more chunks if you like
+test_df_3_b <- test_df_3 %>%
+  mutate(pred_bin = cut(event, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE))
+
+# For Model 8
+test_df_8_b <- test_df_8 %>%
+  mutate(pred_bin = cut(event, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE))
+```
+
+
+### 7e)
+
+**Use `ggplot2` to visualize the number of observations per bin for model 3 with a bar chart.**  
+
+#### SOLUTION
+
+```{r, solution_07e}
+### your code here
+ggplot(test_df_3_b, aes(x = pred_bin)) +
+  geom_bar(stat = "count", fill = "skyblue") +
+  labs(title = "Counts per Bin (Model 3)",
+       x = "Predicted Probability Bins",
+       y = "Count")
+```
+
+### 7f)
+
+**Use `ggplot2` to visualize the number of observations per bin for model 8 with a bar chart.**  
+
+#### SOLUTION
+
+```{r, solution_07f}
+### your code here
+ggplot(test_df_8_b, aes(x = pred_bin)) +
+  geom_bar(stat = "count", fill = "skyblue") +
+  labs(title = "Counts per Bin (Model 8)",
+       x = "Predicted Probability Bins",
+       y = "Count") +
+  theme_minimal()
+```
+
+
+## Problem 08
+
+Rather than using the stacked filled bar charts to represent the calibration curve for models 3 and 8, let's jump straight to creating the calibration curve object for the two models.  
+
+### 8a)
+
+**Calculate the empirical proportion of events within each predicted probability bin associated with model 3. Although you are free to perform the calculations however you like, the results should be stored in a tibble (dataframe) named `my_calcurve_3` object. Your object should have columns for the `pred_bin`, the event proportion in the bin named `prop_event`, and the midpoint of the bin named `mid_bin`. Your `my_calcurve_3` object can have other columns, but those three columns are required.**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary.  
+```{r, 8a}
+# For Model 3
+my_calcurve_3 <- test_df_3_b |>
+  group_by(pred_bin) |>
+  summarize(min_prob = min(event),
+  max_prob = max(event),
+  mid_bin = 0.5*(min_prob + max_prob),
+  prop_event = sum(y == "event") / n())
+            
+my_calcurve_3    
+```
+
+### 8b)
+
+**Calculate the empirical propotion of events within each predicted probability bin associated with model 8. Although you are free to perform the calculations however you like, the results should be stored in a tibble (dataframe) named `my_calcurve_8` object. Your object should have columns for the `pred_bin`, the event proportion in the bin named `prop_event`, and the midpoint of the bin named `mid_bin`. Your `my_calcurve_8` object can have other columns, but those three columns are required.**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary.  
+```{r, 8b}
+my_calcurve_8 <- test_df_8_b |>
+  group_by(pred_bin) |>
+  summarize(min_prob = min(event),
+  max_prob = max(event),
+  mid_bin = 0.5*(min_prob + max_prob),
+  prop_event = sum(y == "event") / n())
+            
+my_calcurve_8
+```
+
+
+### 8c)
+
+**Visualize the calibration curve for model 3 using the approach described in Problem 7b).**  
+
+#### SOLUTION
+
+```{r, solution_08c}
+### your code here
+ggplot(my_calcurve_3, aes(x = mid_bin, y = prop_event)) +
+  geom_line() +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = 'brown', linetype = 'dashed') +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1))
+```
+
+### 8d)
+
+**Visualize the calibration curve for model 8 using the approach described in Problem 7b).**  
+
+#### SOLUTION
+
+```{r, solution_08d}
+### your code here
+ggplot(my_calcurve_8, aes(x = mid_bin, y = prop_event)) +
+  geom_line() +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = 'brown', linetype = 'dashed') +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) 
+```
+
+### 8d)
+
+**Based on your calibration curves, which of the three models appears the most well calibrated? Is it easy obvious which model performs better using this approach? What are the most obvious aspects of performance based on your calibration curves?**  
+
+#### SOLUTION
+
+What do you think?  
+Based on your calibration curves, which of the three models appears the most well calibrated?
+Model 1 exhibits the most consistent calibration, illustrating a strong correspondence between predicted probabilities and observed proportions. The calibration curves clearly emphasize Model 1's superior performance in predicting probabilities, while Models 3 show poorer performance and 8 falls between Models 1 and 3.
+
+
+Is it easy obvious which model performs better using this approach?
+While it is evident, it is not necessarily easy to identify using this method. The box plot method was more effective for visual inspection.
+
+What are the most obvious aspects of performance based on your calibration curves?
+1 model exhibits superior performance. The calibration curve illustrates the connection between predicted probabilities and observed outcomes, offering an understanding of how well the model's predictions align with the actual event rates across various probability bins. In the case of this model, the calibration curve displays a consistent pattern with the stacked filled bar chart, suggesting that the predicted probabilities are well-calibrated and accurately represent the true event proportions. However, for models 3 and 8, disparities between the two visuals raise concerns about potential calibration issues.
+
+## Problem 09
+
+Calibration curves are created by executing many tedious steps. Although you had to perform those steps manually in this assignment there are existing functions which perform the necessary calculations for you. One such function is the `caret::calibration()` function. You will use that function in this problem to practice easily creating calibration curves. The `caret::calibration()` function works with resampled results, but for consistency with the previous problems, we will use with the hold-out test set predictions associated with the `df_test` data set.  
+
+The `caret::calibration()` function has 3 main arguments. The first argument is a formula, the second argument is the data set, and third is the number of bins to use. The formula follows a specific pattern:  
+
+`<binary output variable> ~ <event probability variable>`  
+
+The formula therefore gives the binary outcome variable name to the **left** of the tilde and the variable name for the event probability to the **right** of the tilde. These names **must** match the column names in the data set assigned to the `data` argument. The number of bins is specified by the `cuts` argument.  
+
+### 9a)
+
+**Create the calibration curve associated with model 1's hold-out test predictions using the `caret::calibration()` function. Specify the formula to be consistent with the `test_df_1` data set. Assign the `test_df_1` object to the `data` argument and assign `cuts = 10`. Pipe the result to the `xyplot()` function.**  
+
+**Is the created calibration curve consistent with your manually created curve from the previous problems?**  
+
+#### SOLUTION
+
+```{r, solution_09a}
+### your code here
+cal_curve_1 <- calibration(y ~ event, data = test_df_1, cuts = 10)
+xyplot(cal_curve_1)
+```
+
+Is the created calibration curve consistent with your manually created curve from the previous problems?
+Yes, it is well consistent. 
+
+### 9b)
+
+**Create the calibration curve associated with model 3's hold-out test predictions using the `caret::calibration()` function. Specify the formula to be consistent with the `test_df_3` data set. Assign the `test_df_3` object to the `data` argument and assign `cuts = 10`. Pipe the result to the `xyplot()` function.**  
+
+**Is the created calibration curve consistent with your manually created curve from the previous problems?**  
+
+#### SOLUTION
+
+```{r, solution_09b}
+### your code here
+cal_curve_3 <- calibration(y ~ event, data = test_df_3, cuts = 10)
+xyplot(cal_curve_3)
+```
+
+Is the created calibration curve consistent with your manually created curve from the previous problems?
+Yes, it is well consistent. 
+### 9c)
+
+**Create the calibration curve associated with model 8's hold-out test predictions using the `caret::calibration()` function. Specify the formula to be consistent with the `test_df_8` data set. Assign the `test_df_8` object to the `data` argument and assign `cuts = 10`. Pipe the result to the `xyplot()` function.**  
+
+**Is the created calibration curve consistent with your manually created curve from the previous problems?**  
+
+#### SOLUTION
+
+```{r, solution_09c}
+### your code here
+cal_curve_8 <- calibration(y ~ event, data = test_df_8, cuts = 10)
+xyplot(cal_curve_8)
+```
+Is the created calibration curve consistent with your manually created curve from the previous problems?
+Yes, it is well consistent. 
+
+
