@@ -1,0 +1,1016 @@
+---
+title: "INFSCI 2595 Spring 2024 Homework: 04"
+subtitle: "Assigned February 01, 2024; Due: February 09, 2024"
+author: "Shusrita Venugopal"
+date: "Submission time: February 09, 2024 at 11:00PM EST"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Collaborators
+
+Include the names of your collaborators here.  
+
+## Overview
+
+This assignment is focused on the mathematics of likelihoods, priors, and posteriors. You will work with binomially distributed data in this assignment. You must perform calculations in R using for-loops, functions, and visualize your results using `ggplot2`. You must also perform derivations and type your expressions in LaTeX within equation blocks.  
+
+### IMPORTANT!!!
+
+Certain code chunks are created for you. Each code chunk has `eval=FALSE` set in the chunk options. You **MUST** change it to be `eval=TRUE` in order for the code chunks to be evaluated when rendering the document.  
+
+You are free to add more code chunks if you would like.  
+
+## Load packages
+
+You will ONLY use functions from the `tidyverse` in this assignment.  
+
+```{r, load_tidyverse}
+library(tidyverse)
+```
+
+## Problem 01
+
+Baseball has a rich history of quantitative analysis, even before the rise of advanced analytics techniques. Batting averages, slugging percentages, and other metrics have been used to evaluate player performance for over one hundred years. The batting average, BA, is calculated using the number of at bats, AB, and the successful number of hits, H. The batting average measures the proportion of at bats that a player successfully gets a hit. You can think of the number of hits as the number of **events** and the number of at bats as the number of **trials**.  
+
+You will work with a sequence of at bats of a real Major League Baseball (MLB) player. This sequence is a small sample from the 2022 MLB season. You are not told who this player is so that way you cannot know for certain if the player is a "good" or "bad" hitter! All you are provided with is the small sample size provided below.  
+
+The code chunk below populates the data using the encoding and format discussed in lecture. Each observation (element) of the vector `x` corresponds to an individual at bat. The result, hit or out, is recorded as 1 for hit (**event**) and 0 for out (**non-event**).  
+
+```{r, make_player_data}
+x <- c(0, 0, 0, 0,
+       0, 1, 1, 0,
+       1, 0, 0, 0,
+       0, 1, 1, 0, 1,
+       1, 0, 0, 1,
+       0, 0, 1, 0,
+       1, 1, 1, 0, 0,
+       0, 0, 1, 1)
+```
+
+
+### 1a)
+
+**Calculate the average of the `x` vector.**  
+
+**Display the result to the screen.**  
+
+#### SOLUTION
+
+Insert code chunks to answer the question.
+```{r, solution1a}
+sum_x <- sum(x)
+num_elements <- length(x)
+
+mean_x <- sum_x / num_elements
+print(mean_x)
+```
+### 1b)
+
+The player's batting results, hit or out, is a **binary outcome** which we will assume is a **Bernoulli** random variable. The likelihood function for each at bat (observation) is therefore the Bernoulli distribution. We will also assume the at bats are **independent**. The Bernoulli distribution consists of a single unknown parameter, $\mu$, the **event probability**. In the context of this application, the event probability represents the probability the player gets a hit.  
+
+Having collected the player's data, you are tasked with estimating the player's hit probability. In lecture, we derived the Maximum Likelihood Estimate (MLE) for $\mu$.  
+
+**Without going through any mathematical derivations, what is the MLE for this player's hit probability, based on the data provided?**  
+
+#### SOLUTION
+
+Insert code chunks to answer the question.  
+```{r, solution1b}
+MLE <- mean(x)
+print(MLE)
+```
+
+### 1c)
+
+**How does your result to 1a) compare to the result in 1b)?**  
+
+#### SOLUTION
+
+What do you think?  
+The result of 1a and 1b are the same. They both represent the mean of the given data, which is the proportion of hits in the sequence of at bats. In 1b, we used the Bernoulli distribution to model each at bat as a binary outcome (hit or out), with a single unknown parameter μ representing the event probability, i.e., the probability of getting a hit. The Maximum Likelihood Estimate (MLE) for this player's hit probability, based on the data provided, is equal to the mean calculated in 1a.
+
+### 1d)
+
+Let's now dive into the Bernoulli distribution in greater detail.  
+
+**Write the natural log of the Bernoulli distribution for a single at bat (observation) $x_n$ given the hit (event) probability, $\mu$.**  
+
+**You MUST include at least several steps which simplify the expression using the properties of the natural log to receive full credit.**  
+
+#### SOLUTION
+
+I recommend using separate equation blocks for each line. You are not required to have all mathematical expressions in a single equation block.  
+
+The Bernoulli distribution for a single at bat $x_n$ given the hit (event) probability $\mu$ is expressed as:
+
+$$ 
+p(x_n | \mu) = \mu ^ {x_n} (1 - \mu) ^ {1-x_n}
+$$
+The log likelihood for the N independent observations: 
+$$ 
+\log\ [p(x_n | \mu)]= \log\ [\mu ^ {x_n} (1 - \mu) ^ {1-x_n}]
+$$
+Product of N independent likelihoods becomes the summation of N independent log likelihoods
+$$ 
+\log\ [p(x_n | \mu)]= \sum_{n=1}^{N} (\log\ [\mu ^ {x_n} (1 - \mu) ^ {1-x_n}])
+$$
+Use the properties of the natural log to further simplify the expression:
+$$ 
+\log\ [p(x_n | \mu)]= \sum_{n=1}^{N} (\log\ [\mu ^ {x_n}] +  \log\ [(1 - \mu) ^ {1-x_n}])
+$$
+Rearranging the log-likelihood and solving log:
+$$ 
+\log\ [p(x_n | \mu)]= \sum_{n=1}^{N} ({x_n}\log\ [\mu]) +  \sum_{n=1}^{N} ({1-x_n}\log\ [(1 - \mu)])
+$$
+$$ 
+\log\ [p(x_n | \mu)]= (\log\ [\mu ]) \sum_{n=1}^{N} {x_n} + (\log\ [1 - \mu]) \sum_{n=1}^{N} {1 - x_n}
+$$
+$$ 
+\log\ [p(x_n | \mu)]= (\log\ [\mu ]) \sum_{n=1}^{N} {x_n} + (\log\ [1 - \mu]) \sum_{n=1}^{N} {1 - x_n}
+$$
+### 1e)
+
+The `log_bernoulli_pmf()` function is started for you in the code chunk below. It consists of two input arguments, `xobs`, and `prob`. The `xobs` argument is a numeric vector of observations of a binary variable encoded as 0 and 1. The `prob` argument is the event probability.  
+
+**Complete the code chunk below by correctly calculating the log of the Bernoulli PMF. The function must return a numeric vector the same length as the `xobs` argument.**  
+
+#### SOLUTION
+
+```{r, define_logbernoulli, eval=TRUE}
+log_bernoulli_pmf <- function(xobs, prob)
+{
+  log_probs <- numeric(length(xobs)) # Initialize an empty numeric vector
+  
+  for (i in seq_along(xobs)) {
+    if (xobs[i] == 1) {
+      log_probs[i] <- log(prob)
+    } else {
+      log_probs[i] <- log(1 - prob)
+    }
+  }
+  
+  # Return the vector of log probabilities
+  return(log_probs)
+}
+```
+
+
+### 1f)
+
+Let's check the operation of your `log_bernoulli_pmf()` function.  
+
+**Use separate function calls to the `log_bernoulli_pmf()` function to calculate the values associated with the 1st, 2nd, 3rd, 4th, and 5th observations of the `x` vector. Therefore, you must provide a single `x` observation to the function and do so 5 times.**  
+
+**Use an event probability equal to 0.250 in each function call.**  
+
+**Display the results to the screen.**  
+
+#### SOLUTION
+
+Insert code chunks.  
+```{r, setEvent_Probability}
+event_probability <- 0.250
+```
+
+```{r, solution1f1}
+xobs_1 <- array(x[1])
+log_probability_1 <- log_bernoulli_pmf(xobs_1, event_probability)
+print(log_probability_1)
+```
+```{r, solution1f2}
+xobs_2 <- array(x[2])
+log_probability_2 <- log_bernoulli_pmf(xobs_2, event_probability)
+print(log_probability_2)
+```
+```{r, solution1f3}
+xobs_3 <- array(x[3])
+log_probability_3 <- log_bernoulli_pmf(xobs_3, event_probability)
+print(log_probability_3)
+```
+```{r, solution1f4}
+xobs_4 <- array(x[4])
+log_probability_4 <- log_bernoulli_pmf(xobs_4, event_probability)
+print(log_probability_4)
+```
+```{r, solution1f5}
+xobs_5 <- array(x[5])
+log_probability_5 <- log_bernoulli_pmf(xobs_5, event_probability)
+print(log_probability_5)
+```
+### 1g)
+
+The previous question focused on testing the function for a single observation. Let's now check the function works when multiple observations are provided.  
+
+**Pass the first 5 elements of the `x` vector into the `log_bernoulli_pmf()` function. You must still use an event probability equal to 0.250.**  
+
+**Display the result to the screen.**  
+
+**What is the length of the returned result? How do the values compare to the previous question where you called the function separately for each observation?**  
+
+#### SOLUTION
+
+Insert code chunks. 
+```{r, solution1g}
+xobs_1_5 <- x[1:5]
+log_probability_1_5 <- log_bernoulli_pmf(xobs_1_5, event_probability)
+print(log_probability_1_5)
+```
+What is the length of the returned result? same as input - 5.
+
+How do the values compare to the previous question where you called the function separately for each observation? It is the same values.
+
+## Problem 02
+
+Now that you have practiced calculating the log Bernoulli PMF, let's consider the **joint distribution** of all observations. Remember that the joint distribution is the **likelihood function** for this application. It corresponds to the probability of the exact sequence of observed data given the assumptions. The likelihood of all $N$ observations is written in vector notation for you in the equation block below:  
+
+$$ 
+p \left(x_1, x_2, ... , x_n, , ..., x_{N-1}, x_N \mid \mu \right) = p \left( \mathbf{x} \mid \mu \right)
+$$
+
+### 2a)
+
+**Write the expression for the "complete" log-likelihood assuming the observations are independent.**  
+
+#### SOLUTION
+
+Write your answer in equation blocks  
+$$ 
+p \left(x_1, x_2, ... , x_n, , ..., x_{N-1}, x_N \mid \mu \right) = \sum_{n=1}^{N} \log\ p \left( x_i \mid \mu \right)
+$$
+
+### 2b)
+
+**Calculate the "complete" log-likelihood for all observations in `x`. You must continue to use an event probability of 0.25.**  
+
+**Display the result to the screen.**  
+
+#### SOLUTION
+
+Insert your code chunks. 
+I think this is wrong.
+```{r, solution2b}
+prob <- 0.25
+
+# Compute log-likelihood for each observation
+log_likelihoods <- log_bernoulli_pmf(x, prob)
+
+# Compute the "complete" log-likelihood
+complete_log_likelihood <- sum(log_likelihoods)
+
+# Display the result
+complete_log_likelihood
+```
+
+### 2c)
+
+You might be wondering, why are you using probabilities of 0.25 when you already calculated the MLE at the beginning of the assignment? We derived the MLE in lecture, but you will graphically find the MLE in this assignment. You must therefore calculate the log-likelihood for many candidate event probability values, graph the results, and visually identify the probability that maximizes the likelihood.  
+
+You will do this to reinforce optimization concepts such as why the MLE corresponds to the first derivative equal to zero. This exercise will also introduce visualizing curvature, an important concept we will discuss in greater depth later. Thus, the next few questions are laying the foundation for more complicated optimization problems such as training neural networks.  
+
+You must call the `log_bernoulli_pmf()` function for many potential probability **candidate values**. You will use for-loops to accomplish the iteration procedure. A for-loop is not the most efficient approach to accomplishing this task. We will see more efficient methods soon. For now, the basic for-loop will demonstrate the key concepts.  
+
+However, we need to setup the book keeping before we can iterate. We need the candidate probability values defined before anything else can happen.  
+
+**Define a candidate grid of event probability values as a numeric vector using the `seq()` function. Specify the `from` argument to be 0.025 and the `to` argument to be `0.975`. Create the vector such that 251 evenly spaced values are between the bounds.**  
+
+**Assign the vector the `mu_grid` object.**  
+
+#### SOLUTION
+
+```{r, solution_2c, eval=TRUE}
+mu_grid <- seq(from = 0.025, to = 0.975, length.out = 251)
+```
+
+
+### 2d)
+
+The basic structure of a for-loop in `R` is shown in the code chunk below. This simple for-loop simply prints the value of the *iterating variable* `n` to the screen. The `for` keyword is used to begin the for-loop. We must specify the iterating variable and the **sequence** the iterating variable is **in** within parentheses, `()`. The sequence in the example below is a vector starting at 1 and ending at 4.  
+
+```{r, example_for_loop}
+for( n in 1:4 ){
+  print( n )
+}
+```
+
+When we wish to calculate values and store them as elements within a larger object within a for-loop, it is best to first *initialize* the object with the appropriate size. This variable `example_vector` is initialized with `NA` (missing values) using the `rep()` function 10 times. Notice that the data type conversion function `as.numeric()` is used to ensure the initialized object is numeric.  
+
+```{r, initialize_example_vector}
+example_vector <- rep( as.numeric(NA), 10 )
+
+example_vector %>% class()
+```
+
+To confirm the `example_vector` object contains only missing values.  
+
+```{r, show_example_vector_elements}
+example_vector
+```
+
+We can create a sequence of integers from 1 to the length of `example_vector` using the `seq_along()` function, as shown below. The `seq_along()` function is a useful programmatic approach to creating a vector of integers useful for iteration.  
+
+```{r, show_seq_along_example}
+seq_along(example_vector)
+```
+
+We can now iterate the elements of `example_vector` and populate the elements as desired. The simple example shown below simply sets each element of `example_vector` equal to the square of the element index.  
+
+```{r, populate_example_vector_with_for_loop}
+for( n in seq_along(example_vector) ){
+  example_vector[n] <- n ^ 2
+}
+```
+
+
+The `example_vector` object is displayed below to show it no longer contains missings.  
+
+```{r, show_completed_example_vector}
+example_vector
+```
+
+Obviously this simple example does not require a for-loop. We could have reached the same result by doing the following:  
+
+```{r, check_result_for_example}
+(1:10)^2
+```
+
+However, the point was to demonstrate the key ingredients of populating elements of an object within a for-loop. We must:  
+
+* initialize the object to the appropriate size  
+* iterate over the sequence of elements in the object  
+* perform the necessary calculation and assign result to the object's element  
+
+**You will follow the above steps in order to calculate the log-likelihood associated with the `x` vector for all candidate event probability values contained in the `mu_grid` vector. You must assign the result to the `log_lik_xa` object and that object must have the same length as `mu_grid`.**  
+
+**You will still assume that all observations are independent.**  
+
+*NOTE*: You must use a for-loop for this problem. We will make use of **functional programming** techniques to streamline this calculation later in the semester.  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary. 
+
+```{r, solution2d1}
+# initialize the object to the appropriate size
+log_lik_xa <- numeric(length(mu_grid))
+```
+
+```{r, solution2d2}
+# iterate over the sequence of elements in the object 
+# perform the necessary calculation and assign result to the object's element 
+
+for (i in 1:length(mu_grid)) {
+  # Calculate the log-likelihood for each candidate event probability
+  log_lik_xa[i] <- sum(log_bernoulli_pmf(x, mu_grid[i]))
+}
+```
+
+```{r, solution2d3}
+head(log_lik_xa)
+```
+### 2e)
+
+The code chunk below is completed for you. It assigns the `mu_grid` and `log_lik_xa` vectors as data variables (columns) within a tibble, `xa_results`. The code chunk below is not evaluated by default.  
+
+```{r, make_results_tibble_xa, eval=TRUE}
+xa_results <- tibble::tibble(
+  mu = mu_grid,
+  log_lik = log_lik_xa
+)
+```
+
+
+**Plot the log-likelihood with respect to the event probability using a line plot with `ggplot2`. The line should be created with the `geom_line()` function.**  
+
+#### SOLUTION
+
+Insert code chunks here.  
+```{r, solution2e}
+library(ggplot2)
+
+ggplot(xa_results, aes(x = mu, y = log_lik)) +
+  geom_line() +
+  labs(x = "Event Probability (mu)", y = "Log-Likelihood") +
+  ggtitle("Log-Likelihood vs. Event Probability")
+```
+
+### 2f)
+
+**Create the same line plot as in the previous question, but add an additional layer with `geom_vline()` to show a vertical reference line. Set the `xintercept` argument within `geom_vline()` to the MLE you calculated in 1b).**  
+
+#### SOLUTION
+
+Insert code chunks here. 
+```{r, solution2f}
+ggplot(xa_results, aes(x = mu, y = log_lik)) +
+  geom_line() +
+  geom_vline(xintercept = MLE) +
+  labs(x = "Event Probability (mu)", y = "Log-Likelihood") +
+  ggtitle("Log-Likelihood vs. Event Probability")
+```
+### 2g)
+
+**Describe the behavior of the log-likelihood with respect to the candidate event probability around the MLE in the plot shown in 2f). Does the curve look different near the MLE compared to other candidate values?**  
+
+#### SOLUTION
+
+What do you think?
+
+The MLE is the point on the curve where the log-likelihood is the highest. The curve is symmetrical around the MLE, and it becomes steeper as it gets closer to the MLE. This means that small changes in the event probability near the MLE will lead to larger changes in the log-likelihood than the same changes would lead to farther away from the MLE.
+
+Yes, the curve does look different near the MLE compared to other candidate values. As mentioned before, the curve is steeper near the MLE, which means that it is more sensitive to changes in the event probability in this region. This is because the MLE is the value of the event probability that is most likely to have produced the observed data. 
+
+## Problem 03
+
+Let's now consider tackling the problem from the perspective of the more general Binomial distribution.  
+
+### 3a)
+
+The previous problems worked with the observations stored as 0s and 1s in the vector `x`. You must now summarize the observations. The Binomial distribution requires the number of events, or Hits in this case, and the number of trials, or At Bats in this case.  
+
+**Calculate the number of hits and number of at bats for the sequence of observations stored in the vector `x`. Assign the results to the corresponding variables defined in the code chunk below.**  
+
+#### SOLUTION
+
+```{r, solution_03a, eval=TRUE}
+player_hits <- sum(x)
+player_atbats <- length(x)
+```
+
+### 3b)
+
+You examined the behavior of the log-likelihood when we formulated the problem as a sequence of independent Bernoulli trials. As discussed in lecture, the Binomial distribution assumes the observations are independent Bernoulli trials! Thus, it should not matter if we analyze the problem with the Bernoulli formulation or the Binomial formulation. Let's confirm that is indeed true!  
+
+You will work with the log of the Binomial likelihood up to a normalizing constant. That means, you do not need to consider terms that do not directly involve the unknown event probability $\mu$. Dropping or ignoring the constant terms is also referred to as the **un-normalized** likelihood.  
+
+**Write out the expression for the     up to a normalizing constant for the number of hits $H$, given the number of at bats, $AB$, and the probability of a hit, $\mu$. The equation block is started for you, showing that the log-likelihood is just proportional to the expression on the right hand side.**  
+
+#### SOLUTION
+
+$$ 
+\log \left( p \left( H \mid AB, \mu \right) \right) \propto H \log\left(\mu\right) + \left(AB - H\right)\log(1-\mu)
+$$
+
+### 3c)
+
+Regardless of the formulation (Bernoulli vs Binomial), our goal is to **learn the event probability**. Thus, we still need to find the maximum likelihood estimate (MLE) for $\mu$. You graphically solved this for the Bernoulli formulation in Problem 02. Let's now graphically find the MLE with the Binomial formulation. However, you do not need to use for-loops to compile the data necessary to create the figure when using the Binomial formulation!  
+
+**The code chunk below is started for you. A tibble (dataframe) is created with the data variable (column) `mu` assigned to the `mu_grid` object you created earlier. The tibble is passed to the `mutate()` function for you. You must create a new variable, `log_lik` within `mutate()` which is equal to the Binomial log-likelihood up to a normalizing constant. Thus, `log_lik` must equal the expression you wrote in 3a). Pipe the result into  `ggplot()` and map the `x` aesthetic `mu` and the `y` aesthetic to `log_lik`. Use a `geom_line()` to display those aesthetics with `size` assigned to 1.1. As a reference, include your calculated MLE on the probability with a `geom_vline()`. The `geom_vline()` displays a vertical line at a specified `xintercept` value. You do not need to place `xintercept` within the `aes()` function. Assign the `size`, `linetype`, and `color` arguments within `geom_vline()` to 1, 'dashed', and 'red', respectively.**  
+
+#### SOLUTION
+
+```{r, solution_03c, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(
+    log_lik = player_hits * log(mu) + (player_atbats - player_hits) * log(1 - mu)
+    ) %>% ggplot(aes(x = mu, y = log_lik)) + 
+  geom_line(size = 1) +
+  geom_vline(xintercept = player_hits / player_atbats, size = 1, linetype = "dashed", color = "red") +
+  labs(x = "Event Probability (mu)", y = "Log-Likelihood") +
+  ggtitle("Binomial Log-Likelihood vs. Event Probability")
+  
+```
+
+
+### 3d)
+
+**How does your figure in 3c) compare to your figure in 2f)?**  
+
+#### SOLUTION
+
+What do you think?  
+2f depicts the log-likelihood with respect to the event probability using a line plot, showing the general trend of the log-likelihood across different values of the event probability.
+
+3c, on the other hand, specifically focuses on finding the maximum likelihood estimate (MLE) for the event probability. It visually identifies the point on the curve where the log-likelihood is the highest, representing the MLE. Additionally, it highlights that the curve is symmetrical around the MLE and becomes steeper as it approaches the MLE, indicating greater sensitivity to changes in the event probability near this point.
+
+In summary, while both plots display the log-likelihood with respect to the event probability, Plot 2 offers a more focused analysis by identifying the MLE and emphasizing the curvature of the log-likelihood curve near the MLE.
+
+### 3e)
+
+The un-normalized Binomial likelihood you wrote in 3b) and programmed in 3c) is missing the Binomial coefficient. The Binomial coefficient properly normalizes the values of the Binomial distribution. It is not critical for the **shape** of the log-likelihood but the normalizing constant is critical for calculating probabilities.  
+
+Unless specified otherwise, you are allowed to existing functions for evaluating properly normalized densities or probability mass functions. For the Binomial distribution, the predefined function is `dbinom()`. It contains 4 input arguments: `x`, `size`, `prob`, and `log`. `x` is the number of observed events. `size` is the number of trials, so you can think of `size` as the Trial size. `prob` is the probability of observing the event. `log` is a Boolean, so it equals either `TRUE` or `FALSE`. It is a flag to specify whether to return the log of the probability, `log=TRUE`, or the probability `log=FALSE`. By default, if you do not specify `log` the `dbinom()` function assumes `log=FALSE`.  
+
+You must use the `dbinom()` function to evaluate the log-Binomial likelihood for the player, similar to what you did in 3c). However, instead of manually typing the log-likelihood up to a normalizing constant, you may use the `dbinom()` function to properly evaluate the log-likelihood.  
+
+**The code chunk below is started for you and is structured similar to that in 3c). A tibble (dataframe) is created with the data variable (column) `mu` assigned to the `mu_grid` object. The tibble is passed to the `mutate()` function for you. You must create a new variable, `log_lik` within `mutate()` which is equal to the Binomial log-likelihood. Use the `dbinom()` function to correctly calculate the Binomial log-likelihood. Pay close attention to the arguments of `dbinom()`. Pipe the result into  `ggplot()` and map the `x` aesthetic `mu` and the `y` aesthetic to `log_lik`. Use a `geom_line()` to display those aesthetics with `size` assigned to 1.1. As a reference, include your calculated MLE on the probability with a `geom_vline()`. The `geom_vline()` displays a vertical line at a specified `xintercept` value. You do not need to place `xintercept` within the `aes()` function. Assign the `size`, `linetype`, and `color` arguments within `geom_vline()` to 1, 'dashed', and 'red', respectively.**  
+
+*HINT*: Do not forget to set the `log` flag appropriately!  
+
+#### SOLUTION
+
+```{r, solution_03e, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(
+    log_lik = dbinom(player_hits, size = player_atbats, prob = mu, log = TRUE)
+    ) %>% ggplot(aes(x = mu, y = log_lik)) + 
+  geom_line(size = 1.1) +
+  geom_vline(xintercept = player_hits / player_atbats, size = 1, linetype = "dashed", color = "red") +
+  labs(x = "Event Probability (mu)", y = "Log-Likelihood") +
+  ggtitle("Binomial Log-Likelihood vs. Event Probability")
+
+```
+
+
+### 3f)
+
+**How does your figure in 3e) compare to the figures in 3c) and 2f)?**  
+
+#### SOLUTION
+
+What do you think?  
+
+I think the dbinom plot differs from both Plot 1 and Plot 2 in terms of methodology. While Plot 1 displays the log-likelihood with respect to the event probability using a line plot, and Plot 2 aims to find the MLE for the event probability using the Binomial formulation, the dbinom plot directly evaluates the Binomial log-likelihood using the dbinom function. This plot provides a more direct and accurate representation of the Binomial log-likelihood, incorporating the Binomial coefficient and properly normalizing the likelihood values. However, unlike Plot 1 and Plot 2, the dbinom plot may not explicitly highlight the MLE or its sensitivity to changes in the event probability near the MLE. Instead, it focuses on accurately calculating the likelihood values for different event probabilities based on the Binomial distribution.
+
+## Problem 04
+
+You estimated the event probability (probability of a hit) by maximizing the likelihood. It's now time to use Bayesian methods to learn a **posterior** distribution for the unknown parameter. This distribution will fully represent everything we know about the parameter, based on data and our assumptions. You will summarize this distribution to describe the uncertainty in the parameter, and representative values such as the posterior mean and most probable value (the posterior mode).  
+
+As discussed in lecture, Bayesian methods require **prior** distributions. These distributions represent what we believe about the unknowns. Priors enable combining expert opinion with the data in a controlled and consistent manner. The prior allows us to specify bounds or constraints on the parameter and thus prevents the learning process from being fooled by noise or small sample sizes.  
+
+Your goal is to learn the unknown event (hit) probability. You must therefore specify a prior belief about the probability that a professional baseball player gets a hit. You will use a **Beta** distribution to encode the prior belief on the event probability. The Beta **shape** parameters control the location, width (uncertainty), and skew (asymmetry) of the Beta distribution. Encoding our prior belief therefore comes down to specifying the shape parameter values.  
+
+Instead of focusing on how we should optimally decide those shape parameters, your task is to examine the influence of the prior belief on the posterior result. You will thus try out two different priors and compare the resulting posterior distributions. Determining the "most appropriate" prior is something we will discuss later in the semester.  
+
+The code chunk below defines two sets of shape parameters. The uniform set with both shape parameters equal to 1, and the "informative" set which to different values. Both sets refer to the first shape parameter as $a$ and the second shape parameter as $b$. The R function `dbeta()` refers to $a$ as the `shape1` argument and $b$ as the `shape2` argument.  
+
+```{r, define_prior_shapes}
+a_uniform <- 1
+b_uniform <- 1
+
+a_inform <- 10
+b_inform <- 30
+```
+
+
+### 4a)
+
+**What is the prior number of trials associated with the two sets of shape parameters?**  
+
+#### SOLUTION
+
+Insert code chunks to answer the question. 
+```{r, solution4a}
+prior_trials_uniform <- a_uniform + b_uniform
+prior_trials_inform <- a_inform + b_inform
+
+prior_trials_uniform
+prior_trials_inform
+```
+
+### 4b)
+
+**What is the prior expected value (mean) for the event (hit) probability associated with the two sets of shape parameters?**  
+
+#### SOLUTION
+
+Insert code chunks to answer the question.  
+```{r, solution4b}
+prior_mean_uniform <- a_uniform / (a_uniform + b_uniform)
+prior_mean_inform <- a_inform / (a_inform + b_inform)
+
+prior_mean_uniform
+prior_mean_inform
+```
+
+### 4c)
+
+You will visualize the prior distributions and are allowed to calculate the Beta density with the `dbeta()` function. The first argument to `dbeta()` is the probability parameter, `x`. The second argument to `dbeta()` is `shape1`, the third argument to `dbeta()` is `shape2`. You do not need to set any other argument to `dbeta()` for this question.  
+
+**Plot the two types of prior distributions on the unknown event (hit) probability $\mu$. The Beta pdf can be evaluated with the `dbeta()` function. You must plot the prior with `ggplot2`. The code chunks below are started for you. The $\mu$ values are assigned to the `mu` column using the `mu_grid` object you defined earlier.**  
+
+#### SOLUTION
+
+Plot the uniform prior on $\mu$.  
+
+```{r, solutioN_04c_a, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(beta_pdf = dbeta(mu, a_uniform, b_uniform)) %>%
+  ggplot(aes(x = mu, y = beta_pdf)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = expression(mu), y = "Density", title = "Uniform Prior Distribution")
+```
+
+Plot the informative prior on $\mu$.  
+
+```{r, solution_04c_b, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(beta_pdf = dbeta(mu, a_inform, b_inform)) %>%
+  ggplot(aes(x = mu, y = beta_pdf)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = expression(mu), y = "Density", title = "Uniform Prior Distribution")
+```
+
+
+### 4d)
+
+**How do the two priors compare? Are there event probability values that are "ruled out" by either of the priors?**  
+
+#### SOLUTION
+
+What do you think?  
+
+Uniform prior distribution -  is characterized by equal probability density across the entire range of possible values for the event probability (hit probability), resulting in a flat distribution. This indicates that all values within the specified range are considered equally likely before observing any data. 
+
+Informative prior distribution - concentrates more probability density around specific values of the event probability, reflecting stronger prior beliefs or assumptions about the parameter. As a result, the informative prior distribution may exhibit peaks or skewness, indicating areas of higher prior probability density where the parameter is believed to be more likely to lie.
+
+Yes, event probability values that fall outside the specified range of the uniform prior distribution are effectively "ruled out" by that prior. Since the uniform prior assigns equal probability density across the entire range of possible values, any values outside this range would have zero probability density and thus would not be considered plausible under the uniform prior.
+
+Similarly, for the informative prior distribution, event probability values that lie beyond the range of plausible values specified by the shape parameters would also be "ruled out." 
+
+## Problem 05
+
+Now that you have practiced working with the likelihood and the prior, it is time to study the posterior! However, before executing the analysis for the current baseball problem, you will manipulate the expressions to get a better understanding of the posterior distribution in this application.  
+
+The previous problems in this assignment used notation consistent with the baseball example. However, you will use more generic nomenclature and syntax in this problem to be consistent with lecture. Thus, you will consider a Binomial likelihood with $m$ events out of $N$ trials. You are interested in learning the unknown event probability $\mu$ by combining the observations with the prior. You are using a Beta prior with prior shape parameters, $a$ and $b$.  
+
+### 5a)
+
+You previously wrote out the log-Binomial likelihood up to a normalizing constant in terms hits and at bats. You will rewrite that expression, but this time with the generic variables for the number of events $m$ out of a generic number of trials $N$.  
+
+**Write out the un-normalized log-likelihood for the Binomial likelihood with $m$ events out of $N$ trials and unknown event probability $\mu$.**  
+
+#### SOLUTION
+
+The equation block is started for you below.  
+
+$$ 
+\log \left( p \left( m \mid N, \mu \right) \right) \propto m \log \left(\mu\right) + \left(N - m\right) \log left(1 - \mu\right)
+$$
+
+### 5b)
+
+**Write the log-density of the Beta distribution up to a normalizing constant on the unknown event probability $\mu$ with shape parameters $a$ and $b$.**  
+
+#### SOLUTION
+
+The equation block is started for you below.  
+
+$$ 
+\log \left( p \left( \mu \mid a, b \right) \right) \propto (a - 1) \log (\mu) + (b-1) \log(1 - \mu)
+$$
+
+### 5c)
+
+We already know that since the Beta is conjugate to the Binomial, the posterior distribution on the unknown event probability $\mu$ is also a Beta. You must practice working through the derivation of the updated shape parameters $a_{new}$ and $b_{new}$. The log-likelihood was written in Problem 5a) and the log-prior in Problem 5b). In this problem you must add the un-normalized log-likelihood to the un-normalized log-prior, then perform the required algebra to derive $a_{new}$ and $b_{new}$.  
+
+**Derive the expressions for the updated or posterior Beta shape parameters. You must show all steps in the derivation. You are allowed to use multiple equation blocks if that's easier for you to type with.**  
+
+#### SOLUTION
+
+Write out your derivation below. An equation block is started for you, but you can add as many as you feel are necessary. 
+$$ 
+\text{posterior} \propto \text{likelihood} \times \text{prior}
+$$
+$$ 
+Beta ( \mu \mid a , b ) \propto  (a - 1) \log (\mu) + (b-1) \log(1 - \mu)
+$$
+The beta distribution has the same functional form as the binomial distribution
+$$ 
+Binomial ( m \mid \mu , N ) \propto  m \log (\mu) + (N-m) \log(1 - \mu)
+$$
+
+$$ 
+\log\left(\text{likelihood} \times \text{prior}\right) = \text{log-likelihood} + \text{log-prior}
+$$
+
+$$ 
+\log\left(\binom{n}{k} \cdot \left(1-\mu\right)^{n-k}\right) + \log\left(\mu^{a-1} \cdot \left(1-\mu\right)^{b-1}\right)
+$$
+$$
+k \cdot \log(\mu) + (n-k) \cdot \log(1-\mu) + (a-1) \cdot \log(\mu) + (b-1) \cdot \log(1-\mu)
+$$
+$$
+(a + b - 1) \cdot \log(\mu) + (n - k + b - 1) \cdot \log(1-\mu)
+$$
+This expression represents the un-normalized log-posterior.
+
+We recognize that this un-normalized log-posterior is in the form of a Beta distribution. To find the updated shape parameters, we equate the un-normalized log-posterior to the log of the Beta distribution:
+
+$$
+\log\left(\frac{\mu^{a_{\text{new}}-1} \cdot \left(1-\mu\right)^{b_{\text{new}}-1}}{\text{Beta}(a_{\text{new}}, b_{\text{new}})}\right)
+$$
+From the comparison of coefficients, we can derive the expressions for 
+$$
+
+a_{\text{new}} = k + a
+$$
+
+$$
+b_{\text{new}} = n - k + b
+$$
+### 5d)
+
+Since the posterior distribution on $\mu$ is a Beta, a formula exists for the posterior mode (Max a-posterior estimate). However, you will practice deriving the posterior mode through differentiation of the un-normalized log-posterior. You can always double check your answer with the known formula for the mode of a Beta!  
+
+**Derive the expression for the first derivative of the un-normalized log-posterior with respect to the unknown event probability $\mu$. Write out the derivative in terms of the updated shape parameters $a_{new}$ and $b_{new}$.**  
+
+#### SOLUTION
+
+You may add as many equation blocks as you feel are necessary. One is started for you below.  
+
+Given the un-normalized log-posterior expression:
+$$ 
+\text{log-posterior} = (a_{\text{new}} + b_{\text{new}} -1) \cdot \log(\mu) + (n - k + b_{\text{new}} - 1) \cdot \log(1 - \mu)
+$$
+Taking the derivative with respect to \mu we have:
+$$ 
+\frac{d}{d\mu} (\text{log-posterior}) = (a_{\text{new}} + b_{\text{new}} -1) \cdot \frac{1}{\mu} + (n - k + b_{\text{new}} - 1) \cdot \frac{-1}{1-\mu} 
+$$
+Simplifying this expression, we get:
+$$ 
+\frac{d}{d\mu} (\text{log-posterior}) = \frac{(a_{\text{new}} + b_{\text{new}} -1)}{\mu} - \frac{(n - k + b_{\text{new}} - 1)}
+{1-\mu} 
+$$
+Therefore, the expression for the first derivative of the un-normalized log-posterior with respect to μ in terms of the updated shape parameters is:
+$$ 
+\frac{d}{d\mu} (\text{log-posterior}) = \frac{(a_{\text{new}} + b_{\text{new}} -1)}{\mu} - \frac{(n - k + b_{\text{new}} - 1)}
+{1-\mu} 
+$$
+### 5e)
+
+**Set the derivative from your solution to Problem 5d) equal to zero and solve for the posterior mode of the unknown event probability. Denote the posterior mode as $\mu_{MAP}$.**  
+
+#### SOLUTION
+
+You may add as many equation blocks as you feel are necessary. One is started for you below.  
+
+$$ 
+\frac{(a_{\text{new}} + b_{\text{new}} -1)}{\mu} - \frac{(n - k + b_{\text{new}} - 1)}
+{1-\mu} = 0
+$$
+$$ 
+(a_{\text{new}} + b_{\text{new}} -1)(1-\mu) - (n - k + b_{\text{new}} - 1)(\mu) = 0
+$$
+$$ 
+a_{\text{new}} + b_{\text{new}} - 1 - a_{\text{new}}\mu - b_{\text{new}}\mu + \mu - n\mu +k\mu - b_{\text{new}}\mu + \mu = 0
+$$
+$$ 
+a_{\text{new}} + b_{\text{new}} - 1 - a_{\text{new}}\mu - 2b_{\text{new}}\mu + 2\mu - n\mu + k\mu = 0
+$$
+$$ 
+a_{\text{new}} + b_{\text{new}} - 1 =  a_{\text{new}}\mu + 2b_{\text{new}}\mu - 2\mu + n\mu - k\mu
+$$
+$$ 
+a_{\text{new}} + b_{\text{new}} - 1 =  \mu (a_{\text{new}} + 2b_{\text{new}} - 2 + n - k)
+$$
+$$ 
+\frac{a_{\text{new}} + b_{\text{new}} - 1}{(a_{\text{new}} + 2b_{\text{new}} - 2 + n - k)} =  \mu 
+$$
+$$ 
+\mu_{MAP} = \frac{a_{\text{new}} + b_{\text{new}} - 1}{(a_{\text{new}} + 2b_{\text{new}} - 2 + n - k)}
+$$
+
+## Problem 06
+
+Now that you've worked with the posterior Beta in greater detail, it is time to execute the Bayesian analysis for the baseball problem.  
+
+As a reminder, there are two sets of prior shape parameters. The uniform prior is defined by `a_uniform` and `b_uniform`. The informative prior is defined by `a_inform` and `b_inform`. The observations are stored in the variables `player_hits` and `player_atbats`.  
+
+### 6a)
+
+**Calculate the updated or posterior shape parameters, $a_{new}$ and $b_{new}$, using the observations and the two sets of prior shape parameters.**  
+
+**This problem is open ended, you are free to make the calculations anyway you like. However, you must display the updated shape parameters to the screen. Your results should be clearly marked as to which prior the posterior shape parameters are associated with.**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary.  
+```{r, solution6a}
+# Calculate updated shape parameters for the uniform prior
+a_new_uniform <- a_uniform + player_hits
+b_new_uniform <- b_uniform + player_atbats - player_hits
+
+# Calculate updated shape parameters for the informative prior
+a_new_inform <- a_inform + player_hits
+b_new_inform <- b_inform + player_atbats - player_hits
+
+# Display the results
+cat("Updated shape parameters for the uniform prior:\n")
+cat("a_new_uniform:", a_new_uniform, "\n")
+cat("b_new_uniform:", b_new_uniform, "\n\n")
+
+cat("Updated shape parameters for the informative prior:\n")
+cat("a_new_inform:", a_new_inform, "\n")
+cat("b_new_inform:", b_new_inform, "\n")
+```
+
+### 6b)
+
+**Calculate the posterior mean, mode, 5th percentile (0.05 quantile), and 95th percentile (0.95 quantile) for the posteriors associated with the two prior types. You should use your results from Problem 6a) for the updated or posterior beta shape parameters**  
+
+**Display your results as a dataframe or tibble.**  
+
+*NOTE*: The `qbeta()` function allows calculating the quantiles associated with a particular probability of interest.  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary. 
+```{r,sultion6b}
+posterior_uniform <- data.frame(
+  Prior = "Uniform",
+  Mean = a_new_uniform / (a_new_uniform + b_new_uniform),
+  Mode = (a_new_uniform - 1) / (a_new_uniform + b_new_uniform - 2),
+  Quantile_5th = qbeta(0.05, a_new_uniform, b_new_uniform),
+  Quantile_95th = qbeta(0.95, a_new_uniform, b_new_uniform)
+)
+
+# Calculate posterior statistics for the informative prior
+posterior_inform <- data.frame(
+  Prior = "Informative",
+  Mean = a_new_inform / (a_new_inform + b_new_inform),
+  Mode = (a_new_inform - 1) / (a_new_inform + b_new_inform - 2),
+  Quantile_5th = qbeta(0.05, a_new_inform, b_new_inform),
+  Quantile_95th = qbeta(0.95, a_new_inform, b_new_inform)
+)
+
+# Combine the results into a single dataframe
+posterior_stats <- rbind(posterior_uniform, posterior_inform)
+posterior_stats
+```
+
+### 6c)
+
+Problem 6b) required that you summarize the posterior Beta distribution. This problem requires that you visualize the posterior Beta density associated with the two prior types. You will create the visualizations similiar to what you did in 4c), but you must use the updated or posterior shape parameters, instead of the prior shape parameters.  
+
+**Plot the two posterior distributions on the unknown event (hit) probability $\mu$. The Beta pdf can be evaluated with the `dbeta()` function. You must plot the posterior with `ggplot2`. The code chunks below are started for you. The $\mu$ values are assigned to the `mu` column using the `mu_grid` object you defined earlier. Use the posterior shape parameters you calculated in 6a) in the appropriate code chunk below.**  
+
+#### SOLUTION
+
+Plot the posterior Beta associated with the uniform prior.  
+
+```{r, solutioN_06c_a, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(beta_pdf = dbeta(mu, a_new_uniform, b_new_uniform)) %>%
+  ggplot(aes(x = mu, y = beta_pdf)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = expression(mu), y = "Density", title = "New Uniform Prior Distribution")
+```
+
+Plot the posterior Beta associated with the informative prior.  
+
+```{r, solution_06c_b, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(beta_pdf = dbeta(mu, a_new_inform, b_new_inform)) %>%
+  ggplot(aes(x = mu, y = beta_pdf)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = expression(mu), y = "Density", title = "New Inform Prior Distribution")
+```
+
+
+### 6d)
+
+You have visualize the two posteriors and summarized them.  
+
+**Based on your results, how would you describe the differences in the posterior belief based on the two sets of priors?**  
+
+#### SOLUTION
+
+What do you think? 
+
+Uniform Prior: The posterior distribution based on the uniform prior appears to be more spread out, indicating a broader range of plausible values for the unknown event probability $\mu$. This suggests that the uniform prior allows for more uncertainty and does not bias the posterior towards any specific value of $\mu$.
+
+Informative Prior: In contrast, the posterior distribution based on the informative prior is more concentrated around certain values of $\mu$. This indicates that the informative prior imposes stronger constraints on the possible values of $\mu$, leading to a narrower range of plausible values in the posterior. The informative prior influences the posterior to favor values of $\mu$ that are consistent with the prior beliefs or information.
+
+
+## Problem 07
+
+The data provided to you at the beginning of the assignment is just a small sample of the at bats for this particular Major League Baseball player. The player has played in the MLB season June 2022 and has required many more at bats. You have evaluated the posterior based on the small sample size under two different prior assumptions. Let's now examine how the posterior behaves under larger sample sizes by using the data from the entire season.  
+
+The code chunk below provides the season total hits (number of events) and at bats (number of trials) for this player (at least up to the creation of this assignment).  
+
+```{r, give_season_data}
+season_hits <- 62
+
+season_atbats <- 284
+```
+
+You will use the same two sets of prior shape parameters as in the previous problem. However, you will use the larger sample size observations for this question.  
+
+### 7a)
+
+**Calculate the updated or posterior shape parameters, $a_{new}$ and $b_{new}$, using the season (larger sample size) observations and the two sets of prior shape parameters.**  
+
+**This problem is open ended, you are free to make the calculations anyway you like. However, you must display the updated shape parameters to the screen. Your results should be clearly marked as to which prior the posterior shape parameters are associated with.**  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary.
+```{r, solution7a}
+# Updated shape parameters using the new uniform prior for larger dataset
+a_uniform_new_large <- a_new_uniform + season_hits
+b_uniform_new_large <- b_new_uniform + season_atbats - season_hits
+
+cat("Updated shape parameters (Large sample size) for Uniform Prior:\n")
+cat("a_uniform_new_large =", a_uniform_new_large, "\n")
+cat("b_uniform_new_large =", b_uniform_new_large, "\n\n")
+```
+```{r, solution7a1}
+# Updated shape parameters using the new informative prior for larger dataset
+# Updated shape parameters using the informative prior
+a_inform_new_large <- a_new_inform + season_hits
+b_inform_new_large <- b_new_inform + season_atbats - season_hits
+
+cat("Updated shape parameters (Large sample size) for Informative Prior:\n")
+cat("a_inform_new_large =", a_inform_new_large, "\n")
+cat("b_inform_new_large =", b_inform_new_large, "\n")
+```
+
+
+### 7b)
+
+**Calculate the posterior mean, mode, 5th percentile (0.05 quantile), and 95th percentile (0.95 quantile) for the posteriors associated with the two prior types. You should use your results from Problem 7a) for the updated or posterior beta shape parameters**  
+
+**Display your results as a dataframe or tibble.**  
+
+*NOTE*: The `qbeta()` function allows calculating the quantiles associated with a particular probability of interest.  
+
+#### SOLUTION
+
+Add as many code chunks as you feel are necessary. 
+```{r, solution7b}
+# Calculate posterior statistics for the uniform prior
+posterior_new_uniform_large <- data.frame(
+  Prior = "Uniform",
+  Mean = a_uniform_new_large / (a_uniform_new_large + b_uniform_new_large),
+  Mode = (a_uniform_new_large - 1) / (a_uniform_new_large + b_uniform_new_large - 2),
+  Quantile_5th = qbeta(0.05, a_uniform_new_large, b_uniform_new_large),
+  Quantile_95th = qbeta(0.95, a_uniform_new_large, b_uniform_new_large)
+)
+posterior_new_uniform_large
+```
+```{r, solution7b2}
+# Calculate posterior statistics for the informative prior
+
+posterior_new_inform_large <- data.frame(
+  Prior = "Inform",
+  Mean = a_inform_new_large / (a_inform_new_large + b_inform_new_large),
+  Mode = (a_inform_new_large - 1) / (a_inform_new_large + b_inform_new_large - 2),
+  Quantile_5th = qbeta(0.05, a_inform_new_large, b_inform_new_large),
+  Quantile_95th = qbeta(0.95, a_inform_new_large, b_inform_new_large)
+)
+posterior_new_inform_large
+```
+### 7c)
+
+Problem 7b) required that you summarize the posterior Beta distribution. This problem requires that you visualize the posterior Beta density associated with the two prior types. You will create the visualizations similar to what you did in 4c), but you must use the updated or posterior shape parameters, instead of the prior shape parameters.  
+
+**Plot the two posterior distributions on the unknown event (hit) probability $\mu$. The Beta pdf can be evaluated with the `dbeta()` function. You must plot the posterior with `ggplot2`. The code chunks below are started for you. The $\mu$ values are assigned to the `mu` column using the `mu_grid` object you defined earlier. Use the posterior shape parameters you calculated in 7a) in the appropriate code chunk below.**  
+
+#### SOLUTION
+
+Plot the posterior Beta associated with the uniform prior.  
+
+```{r, solutioN_07c_a, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(beta_pdf = dbeta(mu, a_uniform_new_large, b_uniform_new_large)) %>%
+  ggplot(aes(x = mu, y = beta_pdf)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = expression(mu), y = "Density", title = "Uniform Prior Distribution")
+```
+
+Plot the posterior Beta associated with the informative prior.  
+
+```{r, solution_07c_b, eval=TRUE}
+tibble::tibble(
+  mu = mu_grid
+) %>% 
+  mutate(beta_pdf = dbeta(mu, a_inform_new_large, b_inform_new_large)) %>%
+  ggplot(aes(x = mu, y = beta_pdf)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = expression(mu), y = "Density", title = "Uniform Prior Distribution")
+```
+
+
+### 7d)
+
+You examined the sensitivity of the posterior to two types of prior assumptions based on two sample sizes. One prior is uniform, while the other is "informative". One sample size was small, while the other was larger.  
+
+**Describe the influence of the prior on the posterior when the sample size is small vs large.**  
+
+#### SOLUTION
+
+What do you think?  
+
+When the sample size is small, the influence of the prior on the posterior distribution is more pronounced. This is because with a small amount of data, the prior belief has a greater impact on the final inference. In other words, the posterior distribution tends to resemble the prior distribution more closely when the sample size is small.
+
+On the other hand, when the sample size is large, the influence of the prior diminishes as the data provide more evidence to inform the posterior distribution. In this case, the posterior distribution is more heavily influenced by the observed data, and the shape of the prior has less impact on the final inference.
+
+In summary, the prior has a stronger influence on the posterior distribution when the sample size is small, while the observed data have a stronger influence when the sample size is large.
