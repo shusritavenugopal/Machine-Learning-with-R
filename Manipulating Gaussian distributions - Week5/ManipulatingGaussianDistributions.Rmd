@@ -1,0 +1,503 @@
+---
+title: "INFSCI 2595 Spring 2024 Homework: 05"
+subtitle: "Assigned February 6, 2024; Due: February 14, 2024"
+author: "SHUSRITA VENUGOPAL"
+date: "Submission time: February 13, 2024 at 11:00PM EST"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Collaborators
+
+Include the names of your collaborators here.  
+
+## Overview
+
+This assignment provides practice working with and manipulating Gaussian distributions. You will calculate derivatives and also start working with the `optim()` function.  
+
+### IMPORTANT!!!
+
+Certain code chunks are created for you. Each code chunk has `eval=TRUE` set in the chunk options. You **MUST** change it to be `eval=TRUE` in order for the code chunks to be evaluated when rendering the document.  
+
+You are free to add more code chunks if you would like.  
+
+## Load packages
+
+You will use the `tidyverse` in this assignment, as you have done in the previous assignments.  
+
+```{r, load_packages}
+library(tidyverse)
+```
+
+## Problem 01
+
+Consider a situation where a manufacturing company wants to get a better idea about the **mean** performance of a part they produce. Unfortunately, measuring the performance of that part requires a destructive experiment. Therefore, they would like to test as few parts as possible. Engineers within the company have performed experiments in the past, and so they hope that experience can be incorporated.  
+
+To help out this company, we will assume that the part performance can be represented by a Gaussian likelihood, given the mean performance $\mu$ and the noise $\sigma$. We will assume the observations, $x_{n}$, are conditionally independent given those parameters. The joint distribution between $N$ observations can therefore be factored into the product of $N$ likelihoods:  
+
+$$ 
+p\left( \mathbf{x} \mid \mu, \sigma \right) = \prod_{n=1}^{N} \{ \mathrm{normal}\left(x_{n} \mid \mu, \sigma \right) \}
+$$
+
+### 1a)
+
+In order to perform a Bayesian analysis, we need to specify our prior belief on the unknown parameters. The parameter the engineers are most concerned about is $\mu$. Let's represent our prior belief on $\mu$ with a Gaussian prior parameterized by $\mu_{0}$ and $\tau_{0}$. After asking multiple engineers, it seems that the prior $\pm 2$ standard deviation interval or roughly 95% uncertainty interval around the prior mean, $\mu_{0}$, is between 115 units and 135 units.  
+
+**Based on the interval suggested by the engineers, solve for the $\mu_{0}$ and $\tau_{0}$ parameters for the Gaussian prior on the mean, $\mu$.**  
+
+To specify the Gaussian prior on the mean $\mu$, given that the parameters $\mu_{0}$ and $\tau_{0}$ lie between  115 and 135 units. 
+#### SOLUTION
+
+You may add as many equation blocks as you see fit to answer this question. You can use separate equation blocks for each equation if you would like.  
+
+$$
+\mu_{0} - 2\tau_{0} = 115
+$$
+$$
+\mu_{0} + 2\tau_{0} = 135
+$$
+Adding the 2 equations:
+$$
+2\mu_{0} = 250
+$$
+$$
+\mu_{0} = 125
+$$
+Substituting the value of $\mu_{0}$ in 
+$$
+125 + 2\tau_{0} = 135
+$$
+$$
+\tau_{0} = \frac{135 - 125}{2}
+$$
+$$
+\tau_{0} = 5
+$$
+
+### 1b)
+
+Let's examine the prior uncertainty another way besides the 95% prior uncertainty interval.  
+
+**Based on your result in Problem 1a), calculate the 25th and 75th quantiles associated with the prior Gaussian on $\mu$.**  
+
+**The interval between these two quantiles contains what fraction of the probabilty mass?**  
+
+#### SOLUTION
+
+You may add as many code chunks as you see fit to answer this question.  
+
+```{r, solution1ba}
+# Parameters of the prior Gaussian distribution on mu
+mu_0 <- 125
+tau_0 <- 5
+
+q_25 <- qnorm(0.25, mean = mu_0, sd = tau_0)
+q_75 <- qnorm(0.75, mean = mu_0, sd = tau_0)
+```
+
+```{r, solution1bb}
+probability_mass <- pnorm(q_75, mean = mu_0, sd = tau_0) - pnorm(q_25, mean = mu_0, sd = tau_0)
+
+print("25th Quantile:")
+print(round(q_25, 2))
+
+print("75th Quantile:")
+print(round(q_75, 2))
+
+print("Probability Mass between Quantiles:")
+print(round(probability_mass, 4))
+```
+
+### 1c)
+
+Besides wanting to produce parts with as high as performance as possible, the manufacturing company has several customer requirements they must satisfy. One of their customers has stated they are concerned if large numbers of parts have performance values of 117 units or less.  
+
+**Calculate the prior probability that the mean performance, $\mu$ is less than 117, based on your solution to Problem 1a).**  
+
+#### SOLUTION
+
+Add as many code chunks as you see fit to answer this question.  
+```{r, solution1c}
+# Calculate the prior probability that mu is less than 117
+prior_probability <- pnorm(117, mean = mu_0, sd = tau_0)
+
+# Display the result
+print("Prior Probability that mu < 117:")
+print(round(prior_probability, 4))
+```
+### 1d)
+
+Most of the engineers feel confident that the process standard deviation, $\sigma$, is known and is $\sigma = 5$ units. We will now use this value of $\sigma$ to estimate the required number of observations to achieve a target posterior standard deviation on the mean performance, $\mu$.  
+
+**Based on $\sigma = 5$ and your result in Problem 1a), how many observations are required to have a posterior standard deviation on $\mu$ to be $\tau_{N} = 2$? How many observations are required to have $\tau_{N} = 0.5$?**  
+
+**You should write out the expression for the number of required observations to achieve this goal and then calculate the values associated with two different $\tau_{N}$ values.**  
+
+#### SOLUTION
+
+You may add as many equation blocks and code chunks as you see fit to answer this question. 
+$$
+\frac{1}{\tau_{N}^2} = \frac{1}{\tau_0^2} + \frac{N}{\sigma^2}
+$$
+$$
+\frac{N}{\sigma^2} = \frac{1}{\tau_{N}^2} - \frac{1}{\tau_0^2} 
+$$
+$$
+{N} = \sigma^2 \times (\frac{1}{\tau_{N}^2} - \frac{1}{\tau_0^2})
+$$
+For tau_n = 2
+$$
+{N} = 5^2 \times (\frac{1}{2^2} - \frac{1}{5^2})
+$$
+For tau_n = 2
+$$
+{N} = 5^2 \times (\frac{1}{0.5^2} - \frac{1}{5^2})
+$$
+
+```{r, solution1d}
+# Calculate number of observations for tau_N = 2
+# given
+sigma <- 5
+tau_n <- 2
+tau_0 <- 5
+
+N_tau_n_2 = sigma^2 * (1 / tau_n^2 - 1 / tau_0^2)
+print("Observations required to have tau_n = 2 is")
+N_tau_n_2
+```
+```{r, solution1d2}
+# Calculate number of observations for tau_N = 0.5
+# given
+sigma <- 5
+tau_n <- 0.5
+tau_0 <- 5
+
+N_tau_n_0.5 = sigma^2 * (1 / tau_n^2 - 1 / tau_0^2)
+print("Observations required to have tau_n = 0.5 is")
+N_tau_n_0.5
+```
+
+### 1e)
+
+A small contingent of engineers feel that the others are overly optimistic. This group of engineers feel that the process standard deviation is $\sigma = 15$ units, and they do not feel comfortable specifying such a tight prior on $\mu$. They are worried that a large number of tests will be needed to achieve $\tau_{N} = 3$ units.  
+
+**Based on this small group of engineers, estimate the number of observations required to achieve $\tau_{N} = 3$ assuming $\sigma = 15$ and an infinitely diffuse or infinitely uncertain prior with $\tau_{0} \rightarrow \infty$.**  
+
+**You should first write out the expression for the number of required observations and then calculate the value.**  
+
+#### SOLUTION
+
+You may add as many equation blocks and code chunks as you see fit to answer this question.  
+
+The posterior standard deviation is defined in terms of the posterior
+precision. The posterior precision is the sum of the prior precision and the data precision
+$$
+\frac{1}{\tau_{N}^2} = \frac{1}{\tau_0^2} + \frac{N}{\sigma^2}
+$$
+Equation for A small contingent of engineers $\tau_{N} = 3$ assuming $\sigma = 15$ and $\tau_{0} \rightarrow \infty$
+$$
+\frac{1}{\tau_{N}^2} = \frac{N}{\sigma^2}
+$$
+$$
+\tau_{N} = \frac{\sigma}{\sqrt{N}}
+$$
+Since we have to find the observations N, the equation is written as follows:
+$$
+\sqrt{N} = \frac{\sigma}{\tau_{N}}
+$$
+$$
+N = (\frac{\sigma}{\tau_{N}}) ^ 2
+$$
+
+```{r,solution1e}
+# reset sigma, tau_n values
+sigma <- 15
+tau_n <- 3
+
+N_tau_3 = (sigma * tau_n)^2
+print("The number of required observations for tau_n = 3, sigma = 15 and tau_0 = infinitely diffuse is ")
+N_tau_3
+```
+
+## Problem 02
+
+In lecture, we introduced the normal-normal model with an unknown mean, $\mu$, and known likelihood standard deviation (noise), $\sigma$. Although we discussed the interpretation of the posterior distribution when using the conjugate normal prior on $\mu$, we did not fully derive the posterior. In this problem, you will practice working with Gaussians by deriving the expression for the *posterior mode* or Max A-Posteriori (MAP) estimate. You do **not** need to *complete the square* to solve this problem. Instead, you will find the MAP by optimizing the un-normalized log-posterior with respect to $\mu$. The recording and notes provided on Canvas which show how to derive the Maximum Likelihood Estimate (MLE) may be helpful with this problem.  
+
+This problem uses the same nomenclature as lecture. The prior on $\mu$ is a Gaussian with prior mean $\mu_{0}$ and prior standard deviation $\tau_{0}$.  
+
+### 2a)
+
+The posterior on $\mu$ given $N$ observations $\mathbf{x}$ and known likelihood standard deviation (noise) $\sigma$ is proportional to:  
+
+$$ 
+p\left(\mu \mid \mathbf{x}, \sigma\right) \propto \prod_{n=1}^{N} \left( \mathrm{normal} \left( x_n \mid \mu, \sigma \right) \right) \times \mathrm{normal}\left( \mu \mid \mu_0, \tau_0\right)
+$$
+
+The denominator in Bayes' rule is ignored in the above expression and thus is referred to as the *un-normalized* posterior.  
+
+**Write out the expression for the un-normalized log-posterior on $\mu$. You may drop all terms that do not involve $\mu$. You should show several steps and not simply write down the final answer.**  
+
+#### SOLUTION
+
+You may add as many equation blocks as you see fit to answer this question.  
+$$
+p\left(\mu \mid \mathbf{x}, \sigma\right) \propto \prod_{n=1}^{N} \left( \mathrm{normal} \left( x_n \mid \mu, \sigma \right) \right) \times \mathrm{normal}\left( \mu \mid \mu_0, \tau_0\right)
+$$
+Derivation of log likelihood:
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] \propto \log [\prod_{n=1}^{N} \left( \mathrm{normal} \left( x_n \mid \mu, \sigma \right) \right)]
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] \propto \prod_{n=1}^{N} \log [ \left( \mathrm{normal} \left( x_n \mid \mu, \sigma \right) \right)]
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \log [ \frac{1}{\sqrt{2\pi\sigma^2}} ( e ) ^ \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right)]
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \log [ \frac{1}{\sqrt{2\pi\sigma^2}} ( e ) ^ \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right)]
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \left( \log [ ( e ) ^ \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right)] - \log [\sqrt {2\pi\sigma^2}] \right)
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \left(\log [ ( e ) ^ \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right)]\right) - \sum_{n=1}^{N} \left(\log [\sqrt {2\pi\sigma^2}]\right)
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \left(\log [ ( e ) ^ \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right)]\right) - \sum_{n=1}^{N} \left(\log [\sqrt {2\pi\sigma^2}]\right)
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right) - N \log [\sqrt {2\pi\sigma^2}]
+$$
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right) - \frac{N}{2}\log [2\pi\sigma^2]
+$$
+### 2b)
+
+**Derive the first derivative of the un-normalized log-posterior with respect to $\mu$.**  
+
+**Your final answer MUST be written in terms of the sufficient statistic, the sample average $\bar{x}$.**  
+
+#### SOLUTION
+
+You may add as many equation blocks as you see fit to answer this question.  
+
+$$
+\log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \left(  - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right) - \frac{N}{2}\log [2\pi\sigma^2]
+$$
+Calculating the first derivative so the second term disappers because it is a constant which becomes zero.
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N} \frac{d}{dx} \left( - \frac{1}{2\sigma^2} \times (X_n - \mu)^2\right)
+$$
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \sum_{n=1}^{N}  \frac{1}{\sigma^2} \times (X_n - \mu)
+$$
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \frac{1}{\sigma^2} \sum_{n=1}^{N}(X_n - \mu)
+$$
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \frac{1}{\sigma^2} \left(  \sum_{n=1}^{N}X_n -  \sum_{n=1}^{N}\mu \right)
+$$
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \frac{1}{\sigma^2} \left(  \sum_{n=1}^{N}X_n -  N\mu \right)
+$$
+We can get rid of the summation symbol over $X_n$ by substituting in the mean.
+$$
+\bar{x} = \frac{1}{N} \sum_{n=1}^{N} X_n
+$$
+
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \frac{1}{\sigma^2} \left(  \bar{x}N -  N\mu \right)
+$$
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \frac{N}{\sigma^2} \left(  \bar{x} -  \mu \right)
+$$
+
+### 2c)
+
+**Determine the posterior mode or MAP by setting the derivative expression you determined in Problem 2b) to 0. Denote the posterior mode on $\mu$ as $\mu_{MAP}$.**  
+
+#### SOLUTION
+
+You may add as many equation blocks as you see fit to answer this question.  
+$$
+\frac{d}{dx} \log [p\left(\mu \mid \mathbf{x}, \sigma\right) ] = \frac{N}{\sigma^2} \left(  \bar{x} -  \mu \right) = 0
+$$
+$$
+\frac{N}{\sigma^2} \left(  \bar{x} -  \mu_{MAP} \right) = 0
+$$
+$$
+\left(  \bar{x} -  \mu_{MAP} \right) = 0
+$$
+$$
+\mu_{MAP} = \bar{x}
+$$
+### 2d)
+
+Your expression for the posterior mode should look familiar. In fact, we worked with the expression for the MAP in lecture, but we referred to that expression by a different name.  
+
+**Your answer in Problem 2c) should be equivalent to an expression provided in lecture. Which expression is it the same as? Why is your result for the posterior mode the same as that expression?**  
+
+*HINT*: What type of distribution is the posterior in this case?  
+
+#### SOLUTION
+
+Type your answer here.  
+The expression derived in Problem 2c) for the posterior mode is equivalent to the expression for the mean of the posterior distribution. This is because in the case of a Gaussian likelihood and a Gaussian prior on the mean parameter, the posterior distribution is also Gaussian.
+
+In lecture, we derived the expression for the mean of the posterior distribution, which is the same as the posterior mode (MAP) in this case. This occurs because the Gaussian distribution is symmetric, so its mode coincides with its mean. Therefore, the result for the posterior mode obtained in Problem 2c) matches the expression for the mean of the posterior distribution derived in lecture.
+
+## Problem 03
+
+As you have seen in both lecture and the homework assignments, we will work with optimizing likelihoods and posteriors a lot in this course. Although we will work through the derivations for most problems, you will be allowed to use existing general purpose optimization packages to manage the optimization. There are many different optimization frameworks and packages we could try, but we will use `optim()` in base `R` as our optimization engine. This problem introduces you to the `optim()` function so that you may get used to its arguments and syntax.  
+
+### 3a)
+
+You will use `optim()` to find the value of `x` which maximizes the function `sin(x)` over the interval $-5\pi/8$ to $9\pi/8$. First, plot the `sin()` function over this interval. There are multiple ways to accomplish plotting a function within `ggplot2`, the method outlined below is a simple approach to get you further practice working with basic `ggplot2` commands.  
+
+**Use the `seq()` function to create a vector `x` within the `tibble` started in the code chunk below. Set the arguments to `seq()` such that the vector contains 1001 elements from $-5\pi/8$ to $9\pi/8$. Pipe the `tibble` into `ggplot()` and plot the `sin(x)` with `geom_line()`.**  
+
+#### SOLUTION
+
+```{r, solution_04a, eval=TRUE}
+library(tibble)
+library(ggplot2)
+
+tibble::tibble(
+  x = seq(-5*pi/8, 9*pi/8, length.out = 1001), y = sin(x)
+) %>% 
+  ggplot(mapping = aes(x = x, y = y)) +
+  geom_line() +
+  labs(x = expression(x), y = expression(sin(x))) +
+  ggtitle("Plot of sin(x)")
+```
+
+### 3b)
+
+Let's now optimize the function with `optim()`. Type `?optim` into the R console to bring up the help documentation for the function. The documentation describes the arguments we need to pass into the function. The `par` argument is the first argument to `optim()` and is the initial guess. The second argument, `fn`, is the function we wish to optimize.  
+
+**Use `optim()` to find the `x` value which maximizes `sin()` within the interval of interest. Set the initial guess to 0. Set the `method` in `optim()` to be `"Brent"` and set the `hessian` argument equal to `TRUE`. Set the `lower` and `upper` arguments in the `optim()` to be `-5*pi/8` and `9*pi/8`, respectively. Store the result to `opt_sine_01` and print the result to the screen. Which `control` argument in `optim()` tells `optim()` to maximize instead of minimize? We will not pass in a gradient function, what should `gr` be set to?**  
+
+#### SOLUTION
+
+```{r, solution_04b, eval=TRUE}
+sin_fn <- function(x) -sin(x)
+opt_sine_01 <- optim( par = 0,
+                      fn = sin_fn,
+                      gr = NULL,
+                      method = "Brent",
+                      lower = -5*pi/8,
+                      upper = 9*pi/8,
+                      hessian = TRUE,
+                      control = list( ))
+
+print(opt_sine_01)
+```
+### 3c)
+
+**Reperform the `optim()` call from Problem 3b), but this time with an initial guess of 3 instead of 0. Store the result to `opt_sine_02`. Print `opt_sine_02` to the screen.**  
+
+```{r, solution_04c, eval=TRUE}
+opt_sine_02 <- optim(par = 3,
+                      fn = sin_fn,
+                      gr = NULL,
+                      method = "Brent",
+                      lower = -5*pi/8,
+                      upper = 9*pi/8,
+                      hessian = TRUE,
+                      control = list( ))
+print(opt_sine_02)
+```
+
+
+### 3d)
+
+We will now practice passing in extra arguments to the function we wish to optimize. We will first create our own custom function, for the following relationship:  
+
+$$ 
+f\left(x \right) = -\mathrm{exp} \left( \left(x - a \right)^m \right)
+$$
+
+You must create a custom function and define a list which stores the necessary or required information needed to evaluate the function.  
+
+**Create the function, `my_func()` for the functional relationship shown in the above equation. The first argument to `my_func()` must be the variable `x`. The second argument will be a list named `constants`. The parameters $a$ and $m$ will be contained within this list as elements `a` and `m`, respectively. After defining `my_func()` create the list `my_constants` with elements `a` set to 0.7 and `m` equal to 2.**  
+
+#### SOLUTION
+
+```{r, solution_04d, eval=TRUE}
+my_func <- function( x, constants)
+{
+  ### 
+  a <- constants$a
+  m <- constants$m
+  return(-exp((x - a)^m))
+}
+
+my_constants <- list(a = 0.7, m = 2)
+```
+
+
+### 3e)
+
+Let's visualize our custom function over the interval -0.5 to 2.  
+
+**Within the `tibble` started below, set the `x` variable equal to the result of the `seq()` function consisting of 501 elements between -0.5 and 2. Pipe the `tibble` into `ggplot()` and plot the result of `my_func()` by passing in the `my_constants` list. Use `geom_line()` as the geometric object.**  
+
+#### SOLUTION
+
+```{r, solution_04e, eval=TRUE}
+
+tibble::tibble(
+  x = seq(-0.5, 2, length.out = 501), y = my_func(x, my_constants)
+) %>% 
+  ggplot(mapping = aes(x = x, 
+                       y = y)) + geom_line() 
+```
+
+
+### 3f)
+
+We will now call `optim()` to optimize our custom function over the interval -0.5 to 2.  
+
+**Use `optim()` to find the `x` value which maximizes `my_func()`. Set the initial guess to 1.75. Set the `method` in `optim()` to be `"Brent"` and set the `hessian` argument equal to `TRUE`. Set the `lower` and `upper` arguments in the `optim()` to be -0.5 and 2, respectively. Which `control` argument in `optim()` tells `optim()` to maximize instead of minimize? We will not pass in a gradient function, what should `gr` be set to? You need to pass the `my_constants` list in order for `my_func()` to execute properly! Store the result to `opt_result` and print the result to the screen.**  
+
+#### SOLUTION
+
+```{r, solution_04f, eval=TRUE}
+my_func <- function(x, constants) {
+  -exp((x - constants$a) ^ constants$m)
+}
+
+opt_result <- optim(par = 1.75,
+                      fn = my_func,
+                      constants = list(a = 0.7, m = 2),
+                      gr = NULL,
+                      method = "Brent",
+                      lower = -0.5,
+                      upper = 2,
+                      hessian = TRUE,
+                      control = list( ))
+
+print(opt_result)
+```
+
+
+### 3g)
+
+We will now plot the identified optimal `x` value as a vertical line on top of the function over the interval of interest.  
+
+**Add a vertical line with `geom_vline()` to your plot from Problem 4e). Set the `xintercept` within the `geom_vline()` function equal to the optimal `x` value by accessing the result stored in `opt_result` correctly. Set the color of the vertical line to red.**  
+
+#### SOLUTION
+
+```{r, solution_04g, eval=TRUE}
+tibble::tibble(
+  x = seq(-0.5, 2, length.out = 501),
+  y = my_func(x, list(a = 0.7, m = 2))
+) %>% 
+  ggplot(mapping = aes(x = x, y = y)) + 
+  geom_line() +
+  geom_vline(xintercept = opt_result$par, color = "red")
+```
